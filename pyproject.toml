@@ -1,0 +1,19 @@
+[project]
+name = "plaque"
+version = "0.1.0"
+description = "A simple local-first notebook."
+readme = "README.md"
+authors = [
+    { name = "Alex Alemi", email = "alexalemi@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.2.0",
+]
+
+[project.scripts]
+plaque = "plaque:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
