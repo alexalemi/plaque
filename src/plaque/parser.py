@@ -1,24 +1,10 @@
 """The main python file parser"""
 
-# %%
 
 import re
 from enum import Enum
 from typing import TextIO, Generator
-import dataclasses
-
-
-class CellType(Enum):
-    CODE = 1
-    MARKDOWN = 2
-
-@dataclasses.dataclass
-class Cell:
-    type: CellType
-    content: str
-    lineno: int
-    metadata: dict[str, str] = dataclasses.field(default_factory=dict)
-
+from .cell import Cell, CellType
 
 
 def parse_cell_boundary(line: str) -> tuple[str, CellType, dict[str, str]]:
@@ -45,7 +31,7 @@ def parse_cell_boundary(line: str) -> tuple[str, CellType, dict[str, str]]:
     title = title.strip() if title else ""
 
     cell_type = CellType.CODE
-    if cell_type_str and cell_type_str.lower() in ('markdown', 'md'):
+    if cell_type_str and cell_type_str.lower() in ("markdown", "md"):
         cell_type = CellType.MARKDOWN
 
     metadata = {}
@@ -72,40 +58,54 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
     state = State.CODE
 
     for i, line in enumerate(input):
-
         match state:
             case State.CODE:
                 # we are inside the code case.
 
                 if cell_boundary(line):
                     if cell.content.strip():
+                        cell.content = cell.content.strip()
                         yield cell
 
-                    if line.startswith('# %%'):
+                    if line.startswith("# %%"):
                         # we just hit a cell boundary
                         (title, celltype, metadata) = parse_cell_boundary(line)
                         if title:
-                            metadata = {'title': title} | metadata
-                        state = State.MARKDOWN if celltype == CellType.MARKDOWN else State.CODE
-                        cell = Cell(celltype, "", i+1, metadata=metadata)
+                            metadata = {"title": title} | metadata
+                        state = (
+                            State.MARKDOWN
+                            if celltype == CellType.MARKDOWN
+                            else State.CODE
+                        )
+                        cell = Cell(celltype, "", i + 1, metadata=metadata)
 
                     elif line.startswith("'''"):
-                        cell = Cell(CellType.MARKDOWN, "", i+1)
+                        cell = Cell(CellType.MARKDOWN, "", i + 1)
                         if line.rstrip().endswith("'''"):
                             # it's already closed, its a one liner
-                            cell.content = line.strip("'''").rstrip().rstrip("'''")
+                            cell.content = (
+                                line.removeprefix("'''")
+                                .rstrip()
+                                .removesuffix("'''")
+                                .strip()
+                            )
                             yield cell
-                            cell = Cell(CellType.CODE, "", i+2)
+                            cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
                             state = State.TRIPLE_SINGLE_QUOTE
                     elif line.startswith('"""'):
-                        cell = Cell(CellType.MARKDOWN, "", i+1)
+                        cell = Cell(CellType.MARKDOWN, "", i + 1)
                         if line.rstrip().endswith('"""'):
                             # it's already closed, its a one liner
-                            cell.content = line.strip('"""').rstrip().rstrip('"""')
+                            cell.content = (
+                                line.removeprefix('"""')
+                                .rstrip()
+                                .removesuffix('"""')
+                                .strip()
+                            )
                             yield cell
-                            cell = Cell(CellType.CODE, "", i+2)
+                            cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
                             state = State.TRIPLE_DOUBLE_QUOTE
@@ -116,52 +116,68 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
             case State.MARKDOWN:
                 if cell_boundary(line):
                     if cell.content:
+                        cell.content = cell.content.strip()
                         yield cell
 
-                    if line.startswith('# %%'):
+                    if line.startswith("# %%"):
                         # we just hit a cell boundary
                         (title, celltype, metadata) = parse_cell_boundary(line)
-                        metadata = {'title': title} | metadata
-                        state = State.MARKDOWN if celltype == CellType.MARKDOWN else State.CODE
-                        cell = Cell(celltype, "", i+1, metadata=metadata)
+                        metadata = {"title": title} | metadata
+                        state = (
+                            State.MARKDOWN
+                            if celltype == CellType.MARKDOWN
+                            else State.CODE
+                        )
+                        cell = Cell(celltype, "", i + 1, metadata=metadata)
 
                     elif line.startswith("'''"):
-                        cell = Cell(CellType.MARKDOWN, "", i+1)
+                        cell = Cell(CellType.MARKDOWN, "", i + 1)
                         if line.rstrip().endswith("'''"):
                             # it's already closed, its a one liner
-                            cell.content = line.strip("'''").rstrip().rstrip("'''")
+                            cell.content = (
+                                line.removeprefix("'''")
+                                .rstrip()
+                                .removesuffix("'''")
+                                .strip()
+                            )
                             yield cell
-                            cell = Cell(CellType.CODE, "", i+2)
+                            cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
                             state = State.TRIPLE_SINGLE_QUOTE
                     elif line.startswith('"""'):
-                        cell = Cell(CellType.MARKDOWN, "", i+1)
+                        cell = Cell(CellType.MARKDOWN, "", i + 1)
                         if line.rstrip().endswith('"""'):
                             # it's already closed, its a one liner
-                            cell.content = line.strip('"""').rstrip().rstrip('"""')
+                            cell.content = (
+                                line.removeprefix('"""')
+                                .rstrip()
+                                .removesuffix('"""')
+                                .strip()
+                            )
                             yield cell
-                            cell = Cell(CellType.CODE, "", i+2)
+                            cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
                             state = State.TRIPLE_DOUBLE_QUOTE
 
-                elif not line.startswith('#'):
+                elif not line.startswith("#"):
                     # we aren't in the markdown cell anymore.
                     yield cell
                     state = State.CODE
-                    cell = Cell(CellType.CODE, "", i+1)
+                    cell = Cell(CellType.CODE, "", i + 1)
 
                 else:
-                    cell.content += line.removeprefix('#').removeprefix(' ')
+                    cell.content += line.removeprefix("#").removeprefix(" ")
 
             case State.TRIPLE_SINGLE_QUOTE:
                 # we are inside the triple quote case.
                 if line.rstrip().endswith("'''"):
                     # it's already closed, its a one liner
-                    cell.content += line.rstrip().rstrip("'''")
+                    cell.content += line.rstrip().removesuffix("'''")
+                    cell.content = cell.content.strip()
                     yield cell
-                    cell = Cell(CellType.CODE, "", i+2)
+                    cell = Cell(CellType.CODE, "", i + 2)
                     state = State.CODE
                 else:
                     cell.content += line
@@ -170,9 +186,10 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                 # we are inside the triple quote case.
                 if line.rstrip().endswith('"""'):
                     # it's already closed, its a one liner
-                    cell.content += line.rstrip().rstrip('"""')
+                    cell.content += line.rstrip().removesuffix('"""')
+                    cell.content = cell.content.strip()
                     yield cell
-                    cell = Cell(CellType.CODE, "", i+2)
+                    cell = Cell(CellType.CODE, "", i + 2)
                     state = State.CODE
                 else:
                     cell.content += line
@@ -186,9 +203,11 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             for cell in parse(f):
-                print(f"Type: {cell.type.name}, Line: {cell.lineno}, Metadata: {cell.metadata}")
+                print(
+                    f"Type: {cell.type.name}, Line: {cell.lineno}, Metadata: {cell.metadata}"
+                )
                 print(f"Content:\n{cell.content}")
                 print("-" * 40)
     else:
