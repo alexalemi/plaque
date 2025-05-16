@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # %% [markdown] key=value
-# This is a test
+# # This is a test
 #
 # Let's test this notebook thing, see how it works.
 # But then if you update the file and save.

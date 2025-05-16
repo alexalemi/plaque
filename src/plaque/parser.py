@@ -153,7 +153,7 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                     cell = Cell(CellType.CODE, "", i+1)
 
                 else:
-                    cell.content += line.strip('#')
+                    cell.content += line.removeprefix('#').removeprefix(' ')
 
             case State.TRIPLE_SINGLE_QUOTE:
                 # we are inside the triple quote case.
@@ -177,7 +177,7 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                 else:
                     cell.content += line
 
-    if cell.content:
+    if cell.content.strip():
         yield cell
 
 

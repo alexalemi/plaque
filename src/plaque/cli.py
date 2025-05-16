@@ -1,5 +1,5 @@
 
-from .parser import parse
+from .parser import parse, CellType
 import logging
 
 import click
@@ -16,11 +16,14 @@ def render(input, output):
     logger.info(f"Processing {input.name}")
 
     for cell in parse(input):
-        click.secho("CELL", fg='red')
-        click.echo(cell)
+        if cell.type == CellType.MARKDOWN:
+            click.secho("MARKDOWN", fg='green')
+            click.echo(cell.content.strip())
+        elif cell.type == CellType.CODE:
+            click.secho("CODE", fg='blue')
+            click.echo(cell.content.strip())
 
     logger.info(f"Outputing to {output.name}")
 
 if __name__ == "__main__":
     render()
-
