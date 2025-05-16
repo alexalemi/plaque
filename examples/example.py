@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# %% 
+# %% [markdown] key=value
 # This is a test
 #
 # Let's test this notebook thing, see how it works.
@@ -35,3 +35,10 @@ x = 1 * 3
 """ What now? Huh? """
 
 square(1 + 2)
+
+
+'''Do
+single quotes work as well?
+'''
+
+""" Yes they do. """
