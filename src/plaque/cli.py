@@ -19,6 +19,7 @@ def render(input, output):
 
     cells = list(parse(input))
 
+    env = Environment()
     for cell in cells:
         if cell.is_markdown:
             click.secho("MARKDOWN", fg="green")
@@ -26,13 +27,7 @@ def render(input, output):
         elif cell.is_code:
             click.secho("CODE", fg="blue")
             click.echo(cell.content.strip())
-
-    logger.info("Executing cells")
-    env = Environment()
-    for cell in cells:
-        if cell.is_code:
-            print(env.execute_cell(cell))
-            print(f"New cell {cell=}")
+            env.execute_cell(cell)
 
     logger.info(f"Outputing to {output.name}")
     output.write(format(cells))
