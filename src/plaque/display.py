@@ -188,7 +188,7 @@ def _handle_builtin_types(obj: Any) -> Optional[str]:
     #         return f'<div class="pandas-dataframe">{html_table}</div>'
     #     except Exception as e:
     #         return f'<div class="pandas-dataframe error">Error displaying DataFrame: {str(e)}</div>'
-    
+    #
     # # Handle PIL/Pillow images
     # if hasattr(obj, 'save') and hasattr(obj, 'format'):
     #     try:

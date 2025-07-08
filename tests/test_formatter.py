@@ -45,9 +45,9 @@ class TestEscapeHtml:
 class TestFormatCode:
     """Test code formatting with Pygments."""
     
-    @patch('src.plaque.formatter.highlight')
-    @patch('src.plaque.formatter.PythonLexer')
-    @patch('src.plaque.formatter.HtmlFormatter')
+    @patch('pygments.highlight')
+    @patch('pygments.lexers.PythonLexer')
+    @patch('pygments.formatters.HtmlFormatter')
     def test_pygments_highlighting(self, mock_formatter_class, mock_lexer_class, mock_highlight):
         """Test Pygments syntax highlighting."""
         mock_lexer = Mock()
@@ -69,7 +69,7 @@ class TestFormatCode:
         assert result.endswith('</code></pre>')
         assert 'print' in result
     
-    @patch('src.plaque.formatter.highlight', side_effect=ImportError("Pygments not available"))
+    @patch('pygments.highlight', side_effect=ImportError("Pygments not available"))
     def test_pygments_fallback(self, mock_highlight):
         """Test fallback when Pygments is not available."""
         code = 'print("hello")'
@@ -81,7 +81,7 @@ class TestFormatCode:
     
     def test_code_escaping_in_fallback(self):
         """Test that code is properly escaped in fallback mode."""
-        with patch('src.plaque.formatter.highlight', side_effect=ImportError()):
+        with patch('pygments.highlight', side_effect=ImportError()):
             code = '<script>alert("xss")</script>'
             result = format_code(code)
             
@@ -92,7 +92,7 @@ class TestFormatCode:
 class TestFormatMarkdown:
     """Test markdown formatting."""
     
-    @patch('src.plaque.formatter.markdown.Markdown')
+    @patch('markdown.Markdown')
     def test_markdown_conversion(self, mock_markdown_class):
         """Test markdown to HTML conversion."""
         mock_md = Mock()
@@ -106,12 +106,12 @@ class TestFormatMarkdown:
         mock_md.convert.assert_called_once_with(content)
         assert '<h1>Hello World</h1>' in result
     
-    @patch('src.plaque.formatter.markdown.Markdown')
+    @patch('markdown.Markdown')
     def test_latex_equation_support(self, mock_markdown_class):
         """Test LaTeX equation rendering."""
         mock_md = Mock()
         mock_markdown_class.return_value = mock_md
-        mock_md.convert.return_value = '<p>Einstein discovered that</p>'
+        mock_md.convert.return_value = '<p>Einstein discovered that $E = mc^2$ and $$F = ma$$</p>'
         
         content = "Einstein discovered that $E = mc^2$ and $$F = ma$$"
         result = format_markdown(content)
@@ -124,7 +124,7 @@ class TestFormatMarkdown:
         assert '\\[F = ma\\]' in result
         assert 'math-block' in result
     
-    @patch('src.plaque.formatter.markdown', None)  # Simulate markdown not available
+    @patch.dict('sys.modules', {'markdown': None})
     def test_markdown_fallback(self):
         """Test fallback when markdown library is not available."""
         content = "# Header\n\n**Bold** text with `code`"
@@ -158,7 +158,7 @@ class TestFormatMarkdown:
 class TestFormatResult:
     """Test result formatting using display system."""
     
-    @patch('src.plaque.formatter.display_as_html')
+    @patch('src.plaque.display.display_as_html')
     def test_result_formatting(self, mock_display):
         """Test that format_result uses display system."""
         mock_display.return_value = '<div class="custom">Custom Result</div>'
@@ -380,7 +380,7 @@ class TestCompleteFormat:
             # Should contain both cell types
             assert 'code-cell' in result
             assert 'markdown-cell' in result
-            assert 'print(&#x27;hello&#x27;)' in result or 'print(&#x27;hello&#x27;)' in result
+            assert '&#39;hello&#39;' in result
             assert 'Title' in result
 
 
