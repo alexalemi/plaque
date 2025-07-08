@@ -1,4 +1,4 @@
-from .cli import render
+from .cli import main as cli_main
 
 def main() -> None:
-    render()
+    cli_main()

@@ -153,11 +153,17 @@ To render a notebook:
 
 ```bash
 # Generate static HTML
-plaque my_notebook.py
+plaque render my_notebook.py
+
+# Generate static HTML with custom output path
+plaque render my_notebook.py output.html
 
 # Start live server with auto-reload
-plaque my_notebook.py --serve
+plaque watch my_notebook.py
 
 # Specify a custom port (default is 5000)
-plaque my_notebook.py --serve --port 8000
+plaque watch my_notebook.py --port 8000
+
+# Open browser automatically
+plaque watch my_notebook.py --open
 ```

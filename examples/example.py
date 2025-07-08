@@ -55,7 +55,7 @@ data = {
 # Create a DataFrame from the dictionary
 df = pd.DataFrame(data)
 
-df._repr_html_()
+df
 
 # %%
 
