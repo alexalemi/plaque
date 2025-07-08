@@ -6,7 +6,7 @@ import traceback
 from types import CodeType
 from typing import Any, Optional
 from .cell import Cell
-from .display import RichDisplayManager, capture_matplotlib_plots
+from .display import capture_matplotlib_plots
 
 import builtins
 
@@ -15,7 +15,6 @@ class Environment:
     def __init__(self):
         self.locals = {"__name__": "__main__"}
         self.globals = {}
-        self.display_manager = RichDisplayManager()
 
     def eval(self, source: str | CodeType):
         return builtins.eval(source, self.globals, self.locals)

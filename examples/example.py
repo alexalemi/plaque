@@ -42,3 +42,17 @@ single quotes work as well?
 '''
 
 """ Yes they do. """
+
+import pandas as pd
+
+# Create a dictionary to hold the data
+data = {
+    "Name": ["Alice", "Bob", "Charlie", "David"],
+    "Age": [25, 30, 35, 28],
+    "City": ["New York", "London", "Paris", "Tokyo"]
+}
+
+# Create a DataFrame from the dictionary
+df = pd.DataFrame(data)
+
+df._repr_html_()

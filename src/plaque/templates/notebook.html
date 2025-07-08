@@ -58,9 +58,6 @@
         
         .code-content {
             margin: 0;
-            padding: 12px;
-            background: #2d3748;
-            color: #e2e8f0;
             border-radius: 4px;
             overflow-x: auto;
             font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
@@ -68,10 +65,19 @@
             line-height: 1.4;
         }
         
-        .keyword { color: #ff7043; }
-        .comment { color: #66bb6a; font-style: italic; }
-        .string { color: #ffa726; }
-        .number { color: #42a5f5; }
+        .code-content .highlight {
+            margin: 0;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        
+        .code-content pre {
+            margin: 0;
+            padding: 12px;
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 4px;
+        }
         
         .cell-error {
             background: #fff5f5;
@@ -155,6 +161,60 @@
             color: #6c757d;
         }
         
+        /* Pandas DataFrame styling - for _repr_html_ output */
+        .dataframe {
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 14px;
+            min-width: 0;
+            width: 100%;
+        }
+        
+        .dataframe thead tr:only-child th {
+            text-align: right;
+        }
+        
+        .dataframe thead th {
+            text-align: left;
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe tbody tr th {
+            vertical-align: top;
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .dataframe tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+        
+        .dataframe td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe th {
+            font-weight: 600;
+        }
+        
+        /* Container for dataframe with horizontal scroll */
+        .output-content .dataframe {
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
+        }
+        
+        /* Legacy pandas-dataframe class support */
         .pandas-dataframe {
             overflow-x: auto;
         }

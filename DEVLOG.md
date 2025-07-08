@@ -4,9 +4,9 @@
 
 
 * Core
- - [ ] Fix the watcher module.
- - [ ] Enhance HTML formatter.  Create proper HTML templates with CSS styling.
- - [ ] Add Rich Display support. implement hooks for matplotlib, dataframes, etc.
+ - [X] Fix the watcher module.
+ - [X] Enhance HTML formatter.  Create proper HTML templates with CSS styling.
+ - [X] Add Rich Display support. implement hooks for matplotlib, dataframes, etc.
  - [ ] Improve error handling.  Add capture for errors
 * CLI and Server
  - [ ] Update CLI interface, --serve, --port
@@ -23,8 +23,12 @@
 
 ## 2025-07-08
 
-Picking this back up. I think I should start by writing some tests for the 
-parser.  Got a test harness written.
+Picking this back up. I think I should start by writing some tests for the
+parser.  Got a test harness written.  Got a simple HTML Formatter and rich
+display support.
+
+One thing to remember is to add a simple download button or something, to
+recover the raw file.
 
 ## 2025-05-16
 
