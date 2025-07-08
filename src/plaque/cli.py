@@ -92,16 +92,16 @@ def watch(input, output, open_browser):
     """
     from .watcher import FileWatcher
     import time
-    
+
     input_path = Path(input).resolve()
-    
+
     if output is None:
         output_path = input_path.with_suffix(".html")
     else:
         output_path = Path(output)
-    
+
     processor = Processor()
-    
+
     def regenerate_html(file_path):
         """Regenerate HTML when file changes."""
         try:
@@ -109,23 +109,23 @@ def watch(input, output, open_browser):
             with open(output_path, "w") as f:
                 f.write(html_content)
             click.echo(f"Regenerated: {output_path}")
-            
+
             if open_browser:
                 webbrowser.open(f"file://{output_path.resolve()}")
         except Exception as e:
             click.echo(f"Error processing {input_path}: {e}", err=True)
-    
+
     # Initial generation
     regenerate_html(str(input_path))
-    
+
     # Set up file watcher
     watcher = FileWatcher(str(input_path), regenerate_html)
     watcher.start()
-    
+
     try:
         click.echo(f"Watching {input_path.name} -> {output_path}")
         click.echo("Press Ctrl+C to stop")
-        
+
         # Keep the main thread alive
         while True:
             time.sleep(1)

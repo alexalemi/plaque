@@ -207,12 +207,10 @@ class TestRenderCell:
 
             # Should contain input section
             assert 'class="cell-input"' in result
-            assert 'class="input-label">In:</div>' in result
             assert 'class="code-content"' in result
 
             # Should contain output section
             assert 'class="cell-output"' in result
-            assert 'class="output-label">Out:</div>' in result
             assert 'class="output-content"' in result
 
             mock_format_code.assert_called_once_with('print("hello")')
@@ -268,12 +266,9 @@ class TestRenderCell:
 
             result = render_cell(cell)
 
-            # Should contain cell structure
-            assert 'class="cell markdown-cell"' in result
-            assert 'id="cell-1"' in result
-
-            # Should contain markdown content
+            # Should contain markdown content (no cell wrapper in new design)
             assert 'class="markdown-content"' in result
+            assert 'id="cell-1"' in result
             assert "<h1>Hello World</h1>" in result
 
             mock_format_markdown.assert_called_once_with("# Hello World")
@@ -289,7 +284,8 @@ class TestRenderCell:
 
             result = render_cell(cell)
 
-            assert 'class="cell-title">Documentation</div>' in result
+            # In new design, titles become h3 headings
+            assert 'class="markdown-title">Documentation</h3>' in result
 
     def test_empty_cell(self):
         """Test rendering empty/unknown cell type."""
@@ -396,9 +392,11 @@ class TestCompleteFormat:
         ):
             result = format(cells)
 
-            # Should contain both cell types
+            # Should contain code cell (markdown cells no longer have cell wrapper)
             assert "code-cell" in result
-            assert "markdown-cell" in result
+            assert (
+                "markdown-content" in result
+            )  # Markdown uses content wrapper, not cell wrapper
             assert "&#39;hello&#39;" in result
             assert "Title" in result
 
@@ -433,8 +431,7 @@ class TestIntegration:
         # Don't mock internal functions, test the real pipeline
         result = render_cell(cell)
 
-        # Should have proper structure
-        assert 'class="cell markdown-cell"' in result
+        # Should have proper structure (no cell wrapper in new design)
         assert 'class="markdown-content"' in result
 
         # Markdown should be converted (may vary based on markdown library availability)

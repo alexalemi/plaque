@@ -114,6 +114,12 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                             cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
+                            # Multi-line docstring - capture any content after the opening '''
+                            initial_content = line.removeprefix("'''")
+                            if (
+                                initial_content.strip()
+                            ):  # Only add if there's actual content
+                                cell.content = initial_content
                             state = State.TRIPLE_SINGLE_QUOTE
                     elif line.startswith('"""'):
                         cell = Cell(CellType.MARKDOWN, "", i + 1)
@@ -130,6 +136,12 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                             cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
+                            # Multi-line docstring - capture any content after the opening """
+                            initial_content = line.removeprefix('"""')
+                            if (
+                                initial_content.strip()
+                            ):  # Only add if there's actual content
+                                cell.content = initial_content
                             state = State.TRIPLE_DOUBLE_QUOTE
 
                 else:
@@ -167,6 +179,12 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                             cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
+                            # Multi-line docstring - capture any content after the opening '''
+                            initial_content = line.removeprefix("'''")
+                            if (
+                                initial_content.strip()
+                            ):  # Only add if there's actual content
+                                cell.content = initial_content
                             state = State.TRIPLE_SINGLE_QUOTE
                     elif line.startswith('"""'):
                         cell = Cell(CellType.MARKDOWN, "", i + 1)
@@ -183,6 +201,12 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                             cell = Cell(CellType.CODE, "", i + 2)
                             state = State.CODE
                         else:
+                            # Multi-line docstring - capture any content after the opening """
+                            initial_content = line.removeprefix('"""')
+                            if (
+                                initial_content.strip()
+                            ):  # Only add if there's actual content
+                                cell.content = initial_content
                             state = State.TRIPLE_DOUBLE_QUOTE
 
                 elif not line.startswith("#"):

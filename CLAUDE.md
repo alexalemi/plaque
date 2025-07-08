@@ -13,6 +13,7 @@ Plaque is a local-first notebook system for Python, inspired by Clerk for Clojur
 ## Project Structure
 
 ### Core Modules
+These are all at `src/plaque/`:
 - **`parser.py`**: Parses Python files into cells, handles both `# %%` markers and multiline comments
 - **`cell.py`**: Defines `Cell` and `CellType` classes for representing notebook cells
 - **`environment.py`**: Execution environment with proper error handling and matplotlib capture
@@ -24,6 +25,7 @@ Plaque is a local-first notebook system for Python, inspired by Clerk for Clojur
 - **`processor.py`** - The re-run logic.
 
 ### Templates
+Also at `src/plaque`:
 - **`templates/notebook.html`**: Complete HTML template with CSS styling for notebooks
 
 ## CLI Commands

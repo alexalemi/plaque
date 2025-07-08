@@ -330,3 +330,40 @@ print("Hello 🌍")
         assert len(cells) == 1
         assert "你好世界" in cells[0].content
         assert "🌍" in cells[0].content
+
+    def test_leading_docstring_with_markdown(self):
+        """Test that leading docstring with markdown content is properly captured."""
+        content = '''"""# Leading Docstring Test
+
+This is a test to verify that leading docstrings with markdown content 
+are properly captured and rendered as markdown cells.
+
+## Expected Behavior
+- This entire docstring should appear as rendered markdown
+- The heading should be properly formatted
+"""
+
+import numpy as np
+
+# %%
+x = np.array([1, 2, 3])
+print(x)
+'''
+        cells = list(parse(io.StringIO(content)))
+
+        # Should have 2 cells: markdown docstring + code + code
+        assert len(cells) == 3
+
+        # First cell should be markdown from the leading docstring
+        assert cells[0].type == CellType.MARKDOWN
+        assert "Leading Docstring Test" in cells[0].content
+        assert "Expected Behavior" in cells[0].content
+        assert cells[0].lineno == 1
+
+        # Second cell should be the code
+        assert cells[1].type == CellType.CODE
+        assert "import numpy" in cells[1].content
+
+        # third cell should also be code
+        assert cells[2].type == CellType.CODE
+        assert "x = np.array" in cells[2].content
