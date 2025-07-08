@@ -1,6 +1,6 @@
 """The main Cell class."""
 
-from typing import Any
+from typing import Any, Self
 from enum import Enum
 import dataclasses
 
@@ -27,3 +27,11 @@ class Cell:
     @property
     def is_markdown(self) -> bool:
         return self.type == CellType.MARKDOWN
+
+    def copy_execution(self, other: Self):
+        self.error = other.error
+        self.counter = other.counter
+        self.result = other.result
+
+
+empty_code_cell = Cell(CellType.CODE, "", -1)

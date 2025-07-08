@@ -60,8 +60,9 @@ class Environment:
                     # The last statement is an expression - execute preceding statements
                     if len(stmts) > 1:
                         exec_code = self.compile(
-                            ast.Module(body=stmts[:-1], type_ignores=[]), "exec"
-                        )  # type: ignore
+                            ast.Module(body=stmts[:-1], type_ignores=[]),
+                            "exec",  # type: ignore
+                        )
                         if isinstance(exec_code, tuple):  # Error occurred
                             cell.error = exec_code[1]
                             return None

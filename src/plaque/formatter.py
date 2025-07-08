@@ -128,6 +128,9 @@ def render_cell(cell: Cell) -> str:
     if cell.type == CellType.CODE:
         html_parts = [f'<div class="cell code-cell" id="{cell_id}">']
 
+        # Add code counter
+        html_parts.append(f'<div class="cell-counter">{cell.counter}</div>')
+
         # Add title if present
         if "title" in cell.metadata:
             html_parts.append(
