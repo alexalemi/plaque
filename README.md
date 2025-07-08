@@ -135,7 +135,7 @@ For development work:
 ```bash
 # Clone the repository
 git clone https://github.com/alexalemi/plaque.git
-cd pyclerk
+cd plaque
 
 # Create and activate a virtual environment (optional)
 python -m venv venv

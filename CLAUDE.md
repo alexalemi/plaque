@@ -29,13 +29,13 @@ Plaque is a local-first notebook system for Python, inspired by Clerk for Clojur
 ## CLI Commands
 ```bash
 # Generate static HTML
-plaque render my_notebook.py [output.html]
+plaque render my_notebook.py [output.html] [--open]
 
 # Start an automatic and caching renderer
-plaque watch my_notebook.py [output.html]
+plaque watch my_notebook.py [output.html] [--open]
 
 # Start live server with auto-reload
-plaque serve my_notebook.py [--port 8000] [--open]
+plaque serve my_notebook.py [--port 5000] [--open]
 ```
 
 ## Display System (Marimo-style)
@@ -107,6 +107,8 @@ Comprehensive test suite covering:
 Run tests with: `uv run pytest tests/`
 
 ## Development Workflow
+This project uses `uv` for Python package management and development. Install `uv` first if you haven't already.
+
 ```bash
 # Install development dependencies
 uv pip install -e ".[dev]"
