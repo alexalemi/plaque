@@ -2,24 +2,10 @@
 
 ## TODO
 
-
-* Core
- - [X] Fix the watcher module.
- - [X] Enhance HTML formatter.  Create proper HTML templates with CSS styling.
- - [X] Add Rich Display support. implement hooks for matplotlib, dataframes, etc.
- - [X] Improve error handling.  Add capture for errors
-* CLI and Server
- - [X] Update CLI interface, --serve, --port
- - [X] Implement live server, HTTP server with autoreload
  - [ ] Add SSE Updates. Server sent events with live updating
-* Advanced Features
- - [ ] Add dependency tracking, smart re-execution.
  - [ ] Enhance markdown Rendering, LaTeX, code, etc.
- - [ ] Add More Tests.
-* Polish
  - [ ] Documentation.
  - [ ] Package Setup.
- 
 
 ## 2025-07-08
 
@@ -29,6 +15,14 @@ display support.
 
 One thing to remember is to add a simple download button or something, to
 recover the raw file.
+
+Fixed the watcher module.
+Enhanced the HTML formatter.  Create proper HTML templates with CSS styling.
+Added Rich Display support. implement hooks for matplotlib, dataframes, etc.
+Improved error handling.  Add capture for errors
+Updated CLI interface, --serve, --port
+Implemented live server, HTTP server with autoreload
+Added basic dependency tracking, caching and execution counters.
 
 ## 2025-05-16
 
