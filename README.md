@@ -1,6 +1,9 @@
 # Plaque
 
-A local-first notebook system for Python, inspired by [Clerk](https://clerk.vision/) for Clojure. Plaque turns regular Python files into interactive notebooks with real-time updates and smart dependency tracking.
+A local-first notebook system for Python, inspired by
+[Clerk](https://clerk.vision/) for Clojure. Plaque turns regular Python files
+into interactive notebooks with real-time updates and smart dependency
+tracking.
 
 ## Features
 
@@ -131,7 +134,7 @@ For development work:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pyclerk.git
+git clone https://github.com/alexalemi/plaque.git
 cd pyclerk
 
 # Create and activate a virtual environment (optional)

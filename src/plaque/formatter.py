@@ -7,15 +7,15 @@ from collections.abc import Iterable
 def repr(cell: Cell) -> str:
     match cell.type:
         case CellType.CODE:
-            out = f"<cell><code>{cell.content}</code>"
+            out = f"<div class='cell'><div class='code'>{cell.content}</div>"
             if cell.error is not None:
-                out += f"<error>{cell.error}</error>"
+                out += f"<div class='error'>{cell.error}</div>"
             if cell.result is not None:
-                out += f"<result>{cell.result}</result>"
-            out += "</cell>"
+                out += f"<div class='result'>{cell.result}</div>"
+            out += "</div>"
             return out
         case CellType.MARKDOWN:
-            return f"<cell><markdown>{cell.content}</markdown></cell>"
+            return f"<div class='cell'><div class='markdown'>{cell.content}</div></div>"
 
 
 
