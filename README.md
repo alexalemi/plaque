@@ -158,12 +158,15 @@ plaque render my_notebook.py
 # Generate static HTML with custom output path
 plaque render my_notebook.py output.html
 
-# Start live server with auto-reload
+# Start a live re-render with caching.
 plaque watch my_notebook.py
 
+# Start live server with auto-reload
+plaque serve my_notebook.py
+
 # Specify a custom port (default is 5000)
-plaque watch my_notebook.py --port 8000
+plaque serve my_notebook.py --port 8000
 
 # Open browser automatically
-plaque watch my_notebook.py --open
+plaque serve my_notebook.py --open
 ```
