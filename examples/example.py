@@ -56,3 +56,8 @@ data = {
 df = pd.DataFrame(data)
 
 df._repr_html_()
+
+# %%
+
+# Testing errors
+1/0

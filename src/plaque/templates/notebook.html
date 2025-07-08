@@ -86,16 +86,41 @@
         
         .error-label {
             color: #e53e3e;
+            font-weight: 600;
         }
         
         .error-content {
             margin: 0;
-            padding: 12px;
-            background: #feb2b2;
-            color: #742a2a;
+            padding: 16px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
             border-radius: 4px;
             font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
             font-size: 14px;
+            line-height: 1.5;
+            color: #991b1b;
+        }
+        
+        .error-content .error-type {
+            font-weight: 600;
+            color: #dc2626;
+        }
+        
+        .error-content .error-context {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #fecaca;
+        }
+        
+        .error-content .error-line {
+            background: #fee2e2;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .error-content .error-pointer {
+            color: #dc2626;
+            font-weight: bold;
         }
         
         .cell-output {

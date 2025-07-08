@@ -38,8 +38,13 @@ class Environment:
         
         try:
             # Parse the cell content
-            tree = ast.parse(cell.content)
-            stmts = list(ast.iter_child_nodes(tree))
+            try:
+                tree = ast.parse(cell.content)
+                stmts = list(ast.iter_child_nodes(tree))
+            except SyntaxError as e:
+                # Handle syntax errors with better formatting
+                cell.error = self._format_syntax_error(e, cell.content)
+                return None
             
             if not stmts:
                 return None
@@ -92,25 +97,77 @@ class Environment:
                     return None
                     
         except Exception as e:
-            # Capture runtime errors
-            error_type = type(e).__name__
-            error_msg = str(e)
-            
-            # Get traceback but clean it up
-            tb_lines = traceback.format_exception(type(e), e, e.__traceback__)
-            
-            # Filter out internal plaque frames
-            filtered_tb = []
-            for line in tb_lines:
-                if '<cell>' in line or not any(internal in line for internal in ['plaque/', 'environment.py']):
-                    filtered_tb.append(line)
-            
-            if filtered_tb:
-                cell.error = ''.join(filtered_tb).strip()
-            else:
-                cell.error = f"{error_type}: {error_msg}"
-            
+            # Capture runtime errors with better formatting
+            cell.error = self._format_runtime_error(e, cell.content)
             return None
+
+    def _format_syntax_error(self, error: SyntaxError, source: str) -> str:
+        """Format a syntax error with context and highlighting."""
+        lines = source.split('\n')
+        error_line = error.lineno if error.lineno else 1
+        
+        # Build error message
+        parts = [f"SyntaxError: {error.msg}"]
+        
+        # Add context around the error line
+        start_line = max(1, error_line - 2)
+        end_line = min(len(lines), error_line + 2)
+        
+        parts.append("\nContext:")
+        for i in range(start_line, end_line + 1):
+            if i <= len(lines):
+                line_content = lines[i - 1] if i <= len(lines) else ""
+                prefix = ">>> " if i == error_line else "    "
+                parts.append(f"{prefix}{i:3d}: {line_content}")
+                
+                # Add pointer to error column
+                if i == error_line and error.offset:
+                    pointer_line = " " * (len(prefix) + 4 + error.offset - 1) + "^"
+                    parts.append(pointer_line)
+        
+        return '\n'.join(parts)
+
+    def _format_runtime_error(self, error: Exception, source: str) -> str:
+        """Format a runtime error with cleaned traceback."""
+        error_type = type(error).__name__
+        error_msg = str(error)
+        
+        # Get full traceback
+        tb_lines = traceback.format_exception(type(error), error, error.__traceback__)
+        
+        # Find the line in our cell that caused the error
+        cell_tb_lines = []
+        in_cell = False
+        
+        for line in tb_lines:
+            if '<cell>' in line:
+                in_cell = True
+                # Extract line number from traceback
+                if 'line ' in line:
+                    try:
+                        line_num_str = line.split('line ')[1].split(',')[0]
+                        line_num = int(line_num_str)
+                        cell_tb_lines.append(f"  Line {line_num} in cell")
+                    except:
+                        cell_tb_lines.append("  In cell")
+            elif in_cell and not any(internal in line for internal in ['plaque/', 'environment.py', 'File "/']):
+                # This is the code line that caused the error
+                cell_tb_lines.append(f"    {line.strip()}")
+            elif 'Traceback' in line:
+                continue  # Skip the "Traceback (most recent call last):" line
+            elif not any(internal in line for internal in ['plaque/', 'environment.py', 'site-packages/']):
+                # Include other relevant traceback info
+                cell_tb_lines.append(line.rstrip())
+        
+        if cell_tb_lines:
+            # Build a clean error message
+            result = [f"{error_type}: {error_msg}"]
+            result.append("\nTraceback:")
+            result.extend(cell_tb_lines)
+            return '\n'.join(result)
+        else:
+            # Fallback to simple error message
+            return f"{error_type}: {error_msg}"
 
 
 
