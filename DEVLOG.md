@@ -2,15 +2,29 @@
 
 ## TODO
 
- - [ ] Write tests for parser
- - [ ] Write watcher
- - [ ] Write renderer
- - [ ] Figure out SSE style updates
+
+* Core
+ - [ ] Fix the watcher module.
+ - [ ] Enhance HTML formatter.  Create proper HTML templates with CSS styling.
+ - [ ] Add Rich Display support. implement hooks for matplotlib, dataframes, etc.
+ - [ ] Improve error handling.  Add capture for errors
+* CLI and Server
+ - [ ] Update CLI interface, --serve, --port
+ - [ ] Implement live server, HTTP server with autoreload
+ - [ ] Add SSE Updates. Server sent events with live updating
+* Advanced Features
+ - [ ] Add dependency tracking, smart re-execution.
+ - [ ] Enhance markdown Rendering, LaTeX, code, etc.
+ - [ ] Add More Tests.
+* Polish
+ - [ ] Documentation.
+ - [ ] Package Setup.
+ 
 
 ## 2025-07-08
 
 Picking this back up. I think I should start by writing some tests for the 
-parser.
+parser.  Got a test harness written.
 
 ## 2025-05-16
 
