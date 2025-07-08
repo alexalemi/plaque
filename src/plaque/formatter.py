@@ -139,7 +139,7 @@ def render_cell(cell: Cell) -> str:
 
         # Add code input
         html_parts.append('<div class="cell-input">')
-        html_parts.append('<div class="input-label">In:</div>')
+        # html_parts.append('<div class="input-label">In:</div>')
         html_parts.append(
             f'<div class="code-content">{format_code(cell.content)}</div>'
         )
@@ -157,7 +157,7 @@ def render_cell(cell: Cell) -> str:
         # Add result output if present
         if cell.result is not None:
             html_parts.append('<div class="cell-output">')
-            html_parts.append('<div class="output-label">Out:</div>')
+            # html_parts.append('<div class="output-label">Out:</div>')
             html_parts.append(
                 f'<div class="output-content">{format_result(cell.result)}</div>'
             )
@@ -167,19 +167,19 @@ def render_cell(cell: Cell) -> str:
         return "\n".join(html_parts)
 
     elif cell.type == CellType.MARKDOWN:
-        html_parts = [f'<div class="cell markdown-cell" id="{cell_id}">']
+        # Render markdown without cell wrapper for natural document flow
+        html_parts = []
 
-        # Add title if present
+        # Add title if present (as a standalone heading)
         if "title" in cell.metadata:
             html_parts.append(
-                f'<div class="cell-title">{escape_html(cell.metadata["title"])}</div>'
+                f'<h3 class="markdown-title">{escape_html(cell.metadata["title"])}</h3>'
             )
 
-        # Add markdown content
+        # Add markdown content directly without cell wrapper
         html_parts.append(
-            f'<div class="markdown-content">{format_markdown(cell.content)}</div>'
+            f'<div class="markdown-content" id="{cell_id}">{format_markdown(cell.content)}</div>'
         )
-        html_parts.append("</div>")
         return "\n".join(html_parts)
 
     return ""
