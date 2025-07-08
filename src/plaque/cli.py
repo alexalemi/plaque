@@ -4,6 +4,7 @@ from .server import start_notebook_server
 from .processor import Processor
 import logging
 import sys
+import time
 import webbrowser
 from pathlib import Path
 from functools import partial
@@ -74,9 +75,71 @@ def render(input, output, open_browser):
 
 @main.command()
 @click.argument("input", type=click.Path(exists=True, dir_okay=False))
+@click.argument("output", type=click.Path(), required=False)
+@click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
+def watch(input, output, open_browser):
+    """
+    Watch a Python notebook file and regenerate HTML on changes.
+
+    INPUT: Path to the Python notebook file
+    OUTPUT: Path for the HTML output (optional, defaults to INPUT.html)
+
+    Examples:
+
+      plaque watch my_notebook.py
+      plaque watch my_notebook.py output.html
+      plaque watch my_notebook.py --open
+    """
+    from .watcher import FileWatcher
+    import time
+    
+    input_path = Path(input).resolve()
+    
+    if output is None:
+        output_path = input_path.with_suffix(".html")
+    else:
+        output_path = Path(output)
+    
+    processor = Processor()
+    
+    def regenerate_html(file_path):
+        """Regenerate HTML when file changes."""
+        try:
+            html_content = process_notebook(input_path, processor)
+            with open(output_path, "w") as f:
+                f.write(html_content)
+            click.echo(f"Regenerated: {output_path}")
+            
+            if open_browser:
+                webbrowser.open(f"file://{output_path.resolve()}")
+        except Exception as e:
+            click.echo(f"Error processing {input_path}: {e}", err=True)
+    
+    # Initial generation
+    regenerate_html(str(input_path))
+    
+    # Set up file watcher
+    watcher = FileWatcher(str(input_path), regenerate_html)
+    watcher.start()
+    
+    try:
+        click.echo(f"Watching {input_path.name} -> {output_path}")
+        click.echo("Press Ctrl+C to stop")
+        
+        # Keep the main thread alive
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        click.echo("\nStopping watcher...")
+    finally:
+        watcher.stop()
+
+
+@main.command()
+@click.argument("input", type=click.Path(exists=True, dir_okay=False))
 @click.option("--port", default=5000, help="Port for live server (default: 5000)")
 @click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
-def watch(input, port, open_browser):
+def serve(input, port, open_browser):
     """
     Start live server with auto-reload for a Python notebook file.
 
@@ -84,9 +147,9 @@ def watch(input, port, open_browser):
 
     Examples:
 
-      plaque watch my_notebook.py
-      plaque watch my_notebook.py --port 8000
-      plaque watch my_notebook.py --open
+      plaque serve my_notebook.py
+      plaque serve my_notebook.py --port 8000
+      plaque serve my_notebook.py --open
     """
     input_path = Path(input).resolve()
     callback = partial(process_notebook, processor=Processor())
