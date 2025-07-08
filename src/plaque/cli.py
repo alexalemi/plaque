@@ -1,14 +1,10 @@
 from .parser import parse
 from .formatter import format
 from .environment import Environment
-from .watcher import FileWatcher
+from .server import start_notebook_server
 import logging
-import os
 import sys
-import time
 import webbrowser
-import tempfile
-import shutil
 from pathlib import Path
 
 import click
@@ -98,62 +94,13 @@ def watch(input, port, open_browser):
     """
     input_path = Path(input).resolve()
     
-    # Create temporary directory
-    temp_dir = None
-    watcher = None
-    
     try:
-        import http.server
-        import socketserver
-        import threading
-        
-        # Create temporary directory
-        temp_dir = tempfile.mkdtemp(prefix="plaque_")
-        temp_path = Path(temp_dir)
-        html_path = temp_path / f"{input_path.stem}.html"
-        
-        def regenerate_html():
-            """Regenerate HTML when file changes."""
-            try:
-                html_content = process_notebook(str(input_path))
-                with open(html_path, 'w') as f:
-                    f.write(html_content)
-                click.echo(f"Regenerated: {input_path.name}")
-            except Exception as e:
-                click.echo(f"Error regenerating {input_path}: {e}", err=True)
-        
-        # Initial generation
-        regenerate_html()
-        
-        # Set up file watcher
-        watcher = FileWatcher(str(input_path), lambda path: regenerate_html())
-        watcher.start()
-        
-        # Start HTTP server
-        os.chdir(temp_path)
-        handler = http.server.SimpleHTTPRequestHandler
-        
-        with socketserver.TCPServer(("", port), handler) as httpd:
-            url = f"http://localhost:{port}/{html_path.name}"
-            
-            click.echo(f"Serving {input_path.name} at {url}")
-            click.echo("Press Ctrl+C to stop")
-            
-            if open_browser:
-                webbrowser.open(url)
-            
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                click.echo("\nStopping server...")
-                
-    finally:
-        # Clean up resources
-        if watcher:
-            watcher.stop()
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-                
+        start_notebook_server(
+            notebook_path=input_path,
+            port=port,
+            regenerate_callback=process_notebook,
+            open_browser=open_browser
+        )
     except ImportError as e:
         click.echo(f"Server dependencies not available: {e}", err=True)
         sys.exit(1)
