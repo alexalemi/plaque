@@ -7,10 +7,10 @@
  - [X] Fix the watcher module.
  - [X] Enhance HTML formatter.  Create proper HTML templates with CSS styling.
  - [X] Add Rich Display support. implement hooks for matplotlib, dataframes, etc.
- - [ ] Improve error handling.  Add capture for errors
+ - [X] Improve error handling.  Add capture for errors
 * CLI and Server
- - [ ] Update CLI interface, --serve, --port
- - [ ] Implement live server, HTTP server with autoreload
+ - [X] Update CLI interface, --serve, --port
+ - [X] Implement live server, HTTP server with autoreload
  - [ ] Add SSE Updates. Server sent events with live updating
 * Advanced Features
  - [ ] Add dependency tracking, smart re-execution.
