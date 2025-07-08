@@ -108,29 +108,42 @@ When using multiline comments as cells:
 
 You can install Plaque using either pip or uv:
 
-### Using pip
+### Install directly from GitHub
 
 ```bash
-# Install from PyPI
+# Using pip
+pip install git+https://github.com/alexalemi/plaque.git
+
+# Using uv (recommended)
+uv pip install git+https://github.com/alexalemi/plaque.git
+```
+
+### Install from PyPI (coming soon)
+
+```bash
+# Using pip
 pip install plaque
 
-# Install from local source (development)
+# Using uv
+uv pip install plaque
+```
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/alexalemi/plaque.git
+cd plaque
+
+# Install in development mode
+uv pip install -e .
+# or
 pip install -e .
 ```
 
-### Using uv (recommended)
+### Development Setup with Dependencies
 
-```bash
-# Install from PyPI
-uv pip install plaque
-
-# Install from local source (development)
-uv pip install -e .
-```
-
-### Development Setup
-
-For development work:
+For development work with testing and additional tools:
 
 ```bash
 # Clone the repository
