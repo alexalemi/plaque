@@ -442,3 +442,168 @@ class TestMemoryAndState:
 
         assert results == [None, None, None, 10]  # Only last cell returns value
         assert env.locals.get("total") == 10
+
+
+class TestOutputCapture:
+    """Test stdout and stderr capture functionality."""
+
+    def test_stdout_capture(self):
+        """Test that stdout is captured correctly."""
+        env = Environment()
+        cell = Cell(CellType.CODE, 'print("Hello, World!")', 1)
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "Hello, World!\n"
+        assert cell.stderr == ""
+        assert cell.result is None  # print returns None
+
+    def test_stderr_capture(self):
+        """Test that stderr is captured correctly."""
+        env = Environment()
+        cell = Cell(
+            CellType.CODE, 'import sys\nprint("Error message", file=sys.stderr)', 1
+        )
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == ""
+        assert cell.stderr == "Error message\n"
+        assert cell.result is None
+
+    def test_mixed_output_capture(self):
+        """Test capturing both stdout and stderr."""
+        env = Environment()
+        cell = Cell(
+            CellType.CODE,
+            """import sys
+print("To stdout")
+print("To stderr", file=sys.stderr)
+print("More stdout")""",
+            1,
+        )
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "To stdout\nMore stdout\n"
+        assert cell.stderr == "To stderr\n"
+
+    def test_output_with_expression_result(self):
+        """Test output capture when cell also returns a value."""
+        env = Environment()
+        cell = Cell(CellType.CODE, 'print("Computing...")\n42 + 8', 1)
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "Computing...\n"
+        assert cell.stderr == ""
+        assert cell.result == 50
+
+    def test_output_capture_with_error(self):
+        """Test that output is captured even when an error occurs."""
+        env = Environment()
+        cell = Cell(
+            CellType.CODE,
+            """print("Before error")
+import sys
+print("Stderr before", file=sys.stderr)
+x = 1 / 0  # This will raise ZeroDivisionError""",
+            1,
+        )
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "Before error\n"
+        assert cell.stderr == "Stderr before\n"
+        assert cell.error is not None
+        assert "ZeroDivisionError" in cell.error
+
+    def test_multiline_output(self):
+        """Test capturing multiline output."""
+        env = Environment()
+        cell = Cell(
+            CellType.CODE,
+            """for i in range(3):
+    print(f"Line {i}")""",
+            1,
+        )
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "Line 0\nLine 1\nLine 2\n"
+        assert cell.stderr == ""
+
+    def test_unicode_output(self):
+        """Test capturing unicode output."""
+        env = Environment()
+        cell = Cell(CellType.CODE, 'print("Hello 🌍 Unicode! 你好")', 1)
+
+        env.execute_cell(cell)
+
+        assert cell.stdout == "Hello 🌍 Unicode! 你好\n"
+        assert cell.stderr == ""
+
+
+class TestMatplotlibImprovements:
+    """Test improved matplotlib handling."""
+
+    def test_matplotlib_backend_set(self):
+        """Test that matplotlib backend is set to Agg."""
+        # The backend is set at module import time
+        try:
+            import matplotlib
+
+            backend = matplotlib.get_backend()
+            # Backend should be Agg (case insensitive)
+            assert backend.lower() == "agg"
+        except ImportError:
+            # If matplotlib is not installed, the test should pass
+            pass
+
+    @patch("src.plaque.environment.Environment._get_all_matplotlib_figures")
+    @patch("src.plaque.environment.capture_matplotlib_plots")
+    def test_all_figures_detected(self, mock_capture, mock_get_all):
+        """Test that all active figures are detected, not just captured ones."""
+        # Mock capture returns empty but _get_all_matplotlib_figures returns figures
+        mock_capture.return_value.__enter__.return_value = []
+        mock_capture.return_value.__exit__.return_value = None
+
+        mock_figure = Mock()
+        mock_get_all.return_value = [mock_figure]
+
+        env = Environment()
+        cell = Cell(CellType.CODE, "2 + 2", 1)  # Simple expression
+
+        env.execute_cell(cell)
+
+        # Should use figure from _get_all_matplotlib_figures
+        assert cell.result == mock_figure
+        mock_get_all.assert_called()
+
+    def test_get_all_matplotlib_figures_empty(self):
+        """Test _get_all_matplotlib_figures returns empty list on errors."""
+        env = Environment()
+
+        # Should handle import errors gracefully
+        with patch("builtins.__import__", side_effect=ImportError):
+            figures = env._get_all_matplotlib_figures()
+            assert figures == []
+
+        # Should handle other exceptions gracefully
+        with patch("builtins.__import__", side_effect=Exception):
+            figures = env._get_all_matplotlib_figures()
+            assert figures == []
+
+    def test_matplotlib_figure_display_format(self):
+        """Test that matplotlib figures are properly formatted for display."""
+        from src.plaque.display import _handle_builtin_types
+
+        # Test that non-matplotlib objects return None
+        assert _handle_builtin_types("not a figure") is None
+        assert _handle_builtin_types(42) is None
+
+        # Test the class name detection
+        mock_figure = Mock()
+        mock_figure.__class__ = Mock()
+        mock_figure.__class__.__name__ = "NotAFigure"
+        assert _handle_builtin_types(mock_figure) is None

@@ -451,3 +451,56 @@ class TestIntegration:
         assert 'class="error-content"' in result
         assert "NameError" in result
         assert "undefined_variable" in result
+
+    def test_stdout_formatting(self):
+        """Test stdout output formatting."""
+        cell = Cell(CellType.CODE, 'print("Hello")', 1)
+        cell.stdout = "Hello\n"
+
+        result = render_cell(cell)
+
+        # Should contain stdout formatting
+        assert 'class="cell-stdout"' in result
+        assert 'class="stdout-content"' in result
+        assert "Hello" in result
+
+    def test_stderr_formatting(self):
+        """Test stderr output formatting."""
+        cell = Cell(CellType.CODE, 'import sys; print("Error", file=sys.stderr)', 1)
+        cell.stderr = "Error\n"
+
+        result = render_cell(cell)
+
+        # Should contain stderr formatting
+        assert 'class="cell-stderr"' in result
+        assert 'class="stderr-content"' in result
+        assert "Error" in result
+
+    def test_mixed_output_formatting(self):
+        """Test formatting cell with stdout, stderr, and result."""
+        cell = Cell(CellType.CODE, 'print("out"); print("err", file=sys.stderr); 42', 1)
+        cell.stdout = "out\n"
+        cell.stderr = "err\n"
+        cell.result = 42
+
+        result = render_cell(cell)
+
+        # Should contain all output types
+        assert 'class="cell-stdout"' in result
+        assert 'class="cell-stderr"' in result
+        assert 'class="cell-output"' in result
+        assert "out" in result
+        assert "err" in result
+        assert "42" in result
+
+    def test_output_escaping(self):
+        """Test that stdout/stderr content is properly escaped."""
+        cell = Cell(CellType.CODE, 'print("<script>alert(1)</script>")', 1)
+        cell.stdout = "<script>alert(1)</script>\n"
+
+        result = render_cell(cell)
+
+        # Should escape HTML in output
+        assert "&lt;script&gt;" in result
+        assert "&lt;/script&gt;" in result
+        assert "<script>" not in result  # Should not contain raw script tag

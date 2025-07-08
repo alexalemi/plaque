@@ -7,10 +7,20 @@ import sys
 import traceback
 from types import CodeType
 from typing import Any, Optional
+from contextlib import redirect_stdout, redirect_stderr
+from io import StringIO
 from .cell import Cell
 from .display import capture_matplotlib_plots
 
 import builtins
+
+# Set matplotlib backend before any other matplotlib imports
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")  # Use non-interactive backend to prevent segfaults
+except ImportError:
+    pass  # matplotlib not installed
 
 
 class Environment:
@@ -38,8 +48,14 @@ class Environment:
         # Clear previous results
         cell.result = None
         cell.error = None
+        cell.stdout = ""
+        cell.stderr = ""
         cell.counter = self.counter
         self.counter += 1
+
+        # Create buffers for output capture
+        stdout_buffer = StringIO()
+        stderr_buffer = StringIO()
 
         try:
             # Parse the cell content
@@ -54,60 +70,84 @@ class Environment:
             if not stmts:
                 return None
 
-            # Capture matplotlib plots during execution
+            # Capture matplotlib plots and output during execution
             with capture_matplotlib_plots() as captured_figures:
-                if isinstance(stmts[-1], ast.Expr):
-                    # The last statement is an expression - execute preceding statements
-                    if len(stmts) > 1:
-                        exec_code = self.compile(
-                            ast.Module(body=stmts[:-1], type_ignores=[]),
-                            "exec",  # type: ignore
-                        )
-                        if isinstance(exec_code, tuple):  # Error occurred
-                            cell.error = exec_code[1]
+                with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                    if isinstance(stmts[-1], ast.Expr):
+                        # The last statement is an expression - execute preceding statements
+                        if len(stmts) > 1:
+                            exec_code = self.compile(
+                                ast.Module(body=stmts[:-1], type_ignores=[]),
+                                "exec",  # type: ignore
+                            )
+                            if isinstance(exec_code, tuple):  # Error occurred
+                                cell.error = exec_code[1]
+                                return None
+                            self.exec(exec_code)
+
+                        # Evaluate the last expression
+                        eval_code = self.compile(ast.unparse(stmts[-1]), "eval")
+                        if isinstance(eval_code, tuple):  # Error occurred
+                            cell.error = eval_code[1]
                             return None
-                        self.exec(exec_code)
 
-                    # Evaluate the last expression
-                    eval_code = self.compile(ast.unparse(stmts[-1]), "eval")
-                    if isinstance(eval_code, tuple):  # Error occurred
-                        cell.error = eval_code[1]
-                        return None
+                        result = self.eval(eval_code)
 
-                    result = self.eval(eval_code)
+                        # Capture any output
+                        cell.stdout = stdout_buffer.getvalue()
+                        cell.stderr = stderr_buffer.getvalue()
 
-                    # Handle matplotlib figures
-                    if captured_figures:
-                        # Display the captured figures
-                        for fig in captured_figures:
-                            cell.result = fig
-                            break  # For now, just show the first figure
+                        # Check for any matplotlib figures (including uncaptured ones)
+                        all_figures = self._get_all_matplotlib_figures()
+                        if all_figures:
+                            # Display the captured figures
+                            cell.result = all_figures[
+                                0
+                            ]  # For now, just show the first figure
+                        elif captured_figures:
+                            # Use captured figures if available
+                            cell.result = captured_figures[0]
+                        else:
+                            cell.result = result
+
+                        return result
                     else:
-                        cell.result = result
+                        # All statements are non-expressions, execute them
+                        code_obj = self.compile(cell.content, "exec")
+                        if isinstance(code_obj, tuple):  # Error occurred
+                            cell.error = code_obj[1]
+                            return None
 
-                    return result
-                else:
-                    # All statements are non-expressions, execute them
-                    code_obj = self.compile(cell.content, "exec")
-                    if isinstance(code_obj, tuple):  # Error occurred
-                        cell.error = code_obj[1]
+                        self.exec(code_obj)
+
+                        # Capture any output
+                        cell.stdout = stdout_buffer.getvalue()
+                        cell.stderr = stderr_buffer.getvalue()
+
+                        # Check for any matplotlib figures (including uncaptured ones)
+                        all_figures = self._get_all_matplotlib_figures()
+                        if all_figures:
+                            # Display the captured figures
+                            cell.result = all_figures[
+                                0
+                            ]  # For now, just show the first figure
+                        elif captured_figures:
+                            # Use captured figures if available
+                            cell.result = captured_figures[0]
+
                         return None
-
-                    self.exec(code_obj)
-
-                    # Handle matplotlib figures
-                    if captured_figures:
-                        # Display the captured figures
-                        for fig in captured_figures:
-                            cell.result = fig
-                            break  # For now, just show the first figure
-
-                    return None
 
         except Exception as e:
+            # Capture any output before the error
+            cell.stdout = stdout_buffer.getvalue()
+            cell.stderr = stderr_buffer.getvalue()
             # Capture runtime errors with better formatting
             cell.error = self._format_runtime_error(e, cell.content)
             return None
+        finally:
+            # Close buffers
+            stdout_buffer.close()
+            stderr_buffer.close()
 
     def _format_syntax_error(self, error: SyntaxError, source: str) -> str:
         """Format a syntax error with context and highlighting."""
@@ -134,6 +174,31 @@ class Environment:
                     parts.append(pointer_line)
 
         return "\n".join(parts)
+
+    def _get_all_matplotlib_figures(self):
+        """Get all active matplotlib figures."""
+        try:
+            import matplotlib.pyplot as plt
+
+            # Get all figure numbers
+            fig_nums = plt.get_fignums()
+            if not fig_nums:
+                return []
+
+            # Get all figure objects
+            figures = [plt.figure(num) for num in fig_nums]
+
+            # Only return figures that have content
+            active_figures = []
+            for fig in figures:
+                if fig.get_axes():  # Only include figures with axes
+                    active_figures.append(fig)
+
+            return active_figures
+        except ImportError:
+            return []
+        except Exception:
+            return []
 
     def _format_runtime_error(self, error: Exception, source: str) -> str:
         """Format a runtime error with cleaned traceback."""

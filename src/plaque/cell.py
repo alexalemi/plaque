@@ -19,6 +19,8 @@ class Cell:
     error: None | str = None
     result: Any | None = None
     counter: int = 0
+    stdout: str = ""
+    stderr: str = ""
 
     @property
     def is_code(self) -> bool:
@@ -32,6 +34,8 @@ class Cell:
         self.error = other.error
         self.counter = other.counter
         self.result = other.result
+        self.stdout = other.stdout
+        self.stderr = other.stderr
 
 
 empty_code_cell = Cell(CellType.CODE, "", -1)

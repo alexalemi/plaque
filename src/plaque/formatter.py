@@ -21,7 +21,7 @@ def format_code(content: str) -> str:
 
         lexer = PythonLexer()
         formatter = HtmlFormatter(
-            style="lightbulb",
+            style="monokai",
             noclasses=True,
             cssclass="highlight",
             nowrap=True,  # Don't wrap in <pre><code>, we'll handle that ourselves
@@ -104,7 +104,7 @@ def format_markdown(content: str) -> str:
         for p in paragraphs:
             p = p.strip()
             if p and not p.startswith("<"):
-                p = f'<p>{p.replace(chr(10), "<br>")}</p>'
+                p = f"<p>{p.replace(chr(10), '<br>')}</p>"
             formatted_paragraphs.append(p)
 
         return "\n".join(formatted_paragraphs)
@@ -144,6 +144,22 @@ def render_cell(cell: Cell) -> str:
             f'<div class="code-content">{format_code(cell.content)}</div>'
         )
         html_parts.append("</div>")
+
+        # Add stdout output if present
+        if cell.stdout:
+            html_parts.append('<div class="cell-stdout">')
+            html_parts.append(
+                f'<pre class="stdout-content">{escape_html(cell.stdout)}</pre>'
+            )
+            html_parts.append("</div>")
+
+        # Add stderr output if present
+        if cell.stderr:
+            html_parts.append('<div class="cell-stderr">')
+            html_parts.append(
+                f'<pre class="stderr-content">{escape_html(cell.stderr)}</pre>'
+            )
+            html_parts.append("</div>")
 
         # Add error output if present
         if cell.error:
