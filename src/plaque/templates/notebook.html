@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaque Notebook</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .cell {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .cell-title {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .code-cell {
+            border-left: 4px solid #007acc;
+        }
+        
+        .markdown-cell {
+            border-left: 4px solid #28a745;
+        }
+        
+        .cell-input, .cell-output, .cell-error {
+            padding: 16px;
+        }
+        
+        .cell-input {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .input-label, .output-label, .error-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .code-content {
+            margin: 0;
+            padding: 12px;
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .keyword { color: #ff7043; }
+        .comment { color: #66bb6a; font-style: italic; }
+        .string { color: #ffa726; }
+        .number { color: #42a5f5; }
+        
+        .cell-error {
+            background: #fff5f5;
+            border-top: 1px solid #fed7d7;
+        }
+        
+        .error-label {
+            color: #e53e3e;
+        }
+        
+        .error-content {
+            margin: 0;
+            padding: 12px;
+            background: #feb2b2;
+            color: #742a2a;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .cell-output {
+            background: white;
+        }
+        
+        .output-content {
+            margin: 0;
+        }
+        
+        .result-output {
+            margin: 0;
+            padding: 12px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .markdown-content {
+            padding: 16px;
+        }
+        
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        .markdown-content h1 { font-size: 2em; color: #1a202c; }
+        .markdown-content h2 { font-size: 1.5em; color: #2d3748; }
+        .markdown-content h3 { font-size: 1.2em; color: #4a5568; }
+        
+        .markdown-content p {
+            margin-bottom: 16px;
+        }
+        
+        .markdown-content code {
+            background: #f7fafc;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 0.9em;
+        }
+        
+        .math-block {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        
+        .math-inline {
+            font-size: 1.1em;
+        }
+        
+        .matplotlib-figure {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            color: #6c757d;
+        }
+        
+        .pandas-dataframe {
+            overflow-x: auto;
+        }
+        
+        .pandas-dataframe table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        .pandas-dataframe th, .pandas-dataframe td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .pandas-dataframe th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="notebook">
+        {content}
+    </div>
+</body>
+</html>
