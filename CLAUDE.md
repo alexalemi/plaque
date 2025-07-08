@@ -1,137 +1,159 @@
-# Plaque Project Context
+# Plaque - Interactive Python Notebook Library
 
-## Overview
-Plaque is a local-first notebook system for Python, inspired by Clerk for Clojure. It turns regular Python files into interactive notebooks with real-time updates and smart dependency tracking.
+Plaque is a local-first notebook system that turns regular Python files into interactive notebooks with live updates. This guide covers how to use Plaque effectively for notebook development.
 
-## Key Design Principles
-- **Local-first**: Uses plain Python files as source - no special file formats
-- **Live Updates**: Browser preview updates in real-time as you edit
-- **Rich Output**: Supports Markdown, LaTeX equations, plots, DataFrames, and more
-- **Flexible Format**: Supports both `# %%` markers and multiline comments for cells
-- **Python-native**: Uses standard Python syntax for both code and documentation
+## Basic Usage
 
-## Project Structure
+### Creating Notebook Cells
+Plaque supports two cell formats:
 
-### Core Modules
-These are all at `src/plaque/`:
-- **`parser.py`**: Parses Python files into cells, handles both `# %%` markers and multiline comments
-- **`cell.py`**: Defines `Cell` and `CellType` classes for representing notebook cells
-- **`environment.py`**: Execution environment with proper error handling and matplotlib capture
-- **`formatter.py`**: HTML generation with Pygments syntax highlighting and markdown rendering
-- **`display.py`**: Marimo-style display system with method resolution priority
-- **`server.py`**: HTTP server with auto-reload functionality for live serving
-- **`watcher.py`**: File watching system for detecting changes
-- **`cli.py`**: Command-line interface with `render` and `watch` subcommands
-- **`processor.py`** - The re-run logic.
+**Traditional markers:**
+```python
+# %%
+x = 42
+print(f"The answer is {x}")
 
-### Templates
-Also at `src/plaque`:
-- **`templates/notebook.html`**: Complete HTML template with CSS styling for notebooks
+# %% [markdown]
+# # This is a markdown cell
+# You can write **bold** text and *italic* text
 
-## CLI Commands
-```bash
-# Generate static HTML
-plaque render my_notebook.py [output.html] [--open]
-
-# Start an automatic and caching renderer
-plaque watch my_notebook.py [output.html] [--open]
-
-# Start live server with auto-reload
-plaque serve my_notebook.py [--port 5000] [--open]
+# %%
+import matplotlib.pyplot as plt
+plt.plot([1, 2, 3, 4])
+plt.show()
 ```
 
-## Display System (Marimo-style)
-The display system follows this method resolution order:
+**Multiline comments (recommended):**
+```python
+"""
+# Getting Started
+This is a markdown cell using multiline strings.
+You can include LaTeX: $E = mc^2$
+"""
+
+x = 42  # Regular Python code
+
+"""
+## Results
+The value of x is displayed below:
+"""
+
+x  # This will be displayed as output
+```
+
+### Running Your Notebook
+
+**Generate static HTML:**
+```bash
+plaque render notebook.py output.html --open
+```
+
+**Live development with auto-reload:**
+```bash
+plaque serve notebook.py --port 5000 --open
+```
+
+**File watching (generates HTML on changes):**
+```bash
+plaque watch notebook.py output.html --open
+```
+
+## Live Updates and Output
+
+When using `plaque serve`, your notebook updates automatically:
+- **Real-time updates**: Browser refreshes when you save changes
+- **Live server**: Runs at `http://localhost:5000/` (or specified port)
+- **Auto-reload**: JavaScript polls `/reload_check` endpoint every second
+
+### Getting Current Output Programmatically
+If you need to access the current notebook output, you can make a GET request to the server:
+```python
+import requests
+response = requests.get('http://localhost:5000/')
+html_content = response.text
+```
+
+The `/reload_check` endpoint returns JSON with update timestamps:
+```python
+import requests
+response = requests.get('http://localhost:5000/reload_check')
+data = response.json()
+print(f"Last update: {data['last_update']}")
+```
+
+## Rich Display Support
+
+Plaque uses a Marimo-style display system with method resolution order:
+
 1. `_display_()` method - returns any Python object (recursive)
 2. `_mime_()` method - returns `(mime_type, data)` tuple
 3. IPython `_repr_*_()` methods - `_repr_html_()`, `_repr_png_()`, etc.
 4. Built-in type handling - matplotlib figures, pandas DataFrames, PIL images
 5. `repr()` fallback
 
-## Cell Formats Supported
-
-### Traditional Markers
-```python
-# %%
-x = 42
-
-# %% [markdown]
-# # This is a markdown cell
-
-# %%
-print(x)
-```
-
-### Multiline Comments
+### Example Rich Outputs
 ```python
 """
-# Getting Started
-This is a markdown cell using multiline strings.
+# Data Visualization Examples
 """
 
-x = 42  # Regular code
+import pandas as pd
+import matplotlib.pyplot as plt
 
-"""More markdown content"""
+# DataFrames render as HTML tables
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+df
+
+# Matplotlib figures are automatically captured
+plt.figure(figsize=(8, 6))
+plt.plot([1, 2, 3, 4], [1, 4, 2, 3])
+plt.title('Sample Plot')
+plt.show()
+
+# HTML content
+from IPython.display import HTML
+HTML('<h3 style="color: blue;">Custom HTML</h3>')
 ```
 
-## Key Dependencies
-- **click**: CLI framework
-- **watchdog**: File watching
-- **pygments**: Syntax highlighting
-- **markdown**: Markdown processing (with extensions for tables, code highlighting)
+## Best Practices
 
-## Recent Major Improvements
+1. **Use multiline comments** for markdown cells - they're more readable
+2. **Save frequently** - the live server updates on every save
+3. **Keep cells focused** - one concept per cell works best
+4. **Use descriptive markdown** - explain your code and results
+5. **Test with `plaque serve`** - see results immediately during development
 
-### ✅ Completed Features
-- **Parser**: Comprehensive parsing with support for both cell formats
-- **Environment**: Code execution with proper error handling and matplotlib capture
-- **Formatter**: Professional HTML output with Pygments and markdown support
-- **Display System**: Marimo-style method resolution for rich output
-- **CLI**: Subcommand structure with `render` and `watch`
-- **Live Server**: Auto-reload functionality with temporary file management
-- **Error Handling**: Detailed syntax and runtime error formatting
-- **Testing**: Comprehensive test suite for core components
+## Development Notes
 
-### 🔧 Current Status
-The project is feature-complete for basic notebook functionality. The live server works with auto-reload, rich display is functional, and error handling is robust.
+For library development, see `CLAUDE.dev.md` which contains:
+- Project structure details
+- Architecture documentation
+- Development workflow
+- Testing instructions
+- Implementation details
 
-### 📋 Remaining Tasks
-- **SSE Updates**: Consider server-sent events for real-time updates
-- **Dependency Tracking**: Smart re-execution based on variable dependencies
-- **Additional Tests**: Integration and end-to-end testing
-
-## Testing
-Comprehensive test suite covering:
-- **Display System**: Method resolution, IPython methods, built-in types
-- **Environment**: Code execution, error handling, variable persistence
-- **Formatter**: HTML generation, template injection, styling
-
-Run tests with: `uv run pytest tests/`
-
-## Development Workflow
-This project uses `uv` for Python package management and development. Install `uv` first if you haven't already.
+## Common Commands
 
 ```bash
-# Install development dependencies
-uv pip install -e ".[dev]"
+# Start live development server
+plaque serve notebook.py --open
 
-# Run tests
-uv run pytest
+# Generate final HTML output
+plaque render notebook.py final_output.html
 
-# Test with example
-uv run plaque render examples/example.py
-uv run plaque watch examples/example.py --open
+# Watch for changes and regenerate
+plaque watch notebook.py --open
+
+# Run tests (for development)
+uv run pytest tests/
 ```
 
-## Known Issues & Considerations
-- Error formatting filters out internal plaque frames
-- Auto-reload polls every 1 second for changes
+## Error Handling
 
-## Architecture Notes
-- **Modular Design**: Each component is well-separated and testable
-- **Template System**: HTML template extracted to separate file
-- **Error Handling**: Comprehensive error capture with cleaned tracebacks
-- **Resource Management**: Proper cleanup of temp files and watchers
-- **Security**: HTML escaping to prevent XSS attacks
+Plaque provides comprehensive error handling:
+- Syntax errors are highlighted with line numbers
+- Runtime errors show clean tracebacks
+- Internal plaque frames are filtered out
+- Errors don't crash the entire notebook
 
-This project successfully implements a clean, local-first notebook system that maintains the simplicity of Python files while providing rich interactive features.
+Your notebook will continue running even if individual cells fail, making iterative development smooth and efficient.
