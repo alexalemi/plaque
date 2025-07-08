@@ -110,13 +110,13 @@ x = 1
     def test_markdown_cell_basic(self):
         """Test parsing basic markdown cell."""
         content = """# %% [markdown]
-# This is a header
+# #This is a header
 # This is content
 """
         cells = list(parse(io.StringIO(content)))
         assert len(cells) == 1
         assert cells[0].type == CellType.MARKDOWN
-        assert cells[0].content == "This is a header\nThis is content"
+        assert cells[0].content == "#This is a header\nThis is content"
     
     def test_markdown_cell_with_code_after(self):
         """Test markdown cell followed by code."""
