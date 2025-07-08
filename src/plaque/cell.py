@@ -4,9 +4,11 @@ from typing import Any
 from enum import Enum
 import dataclasses
 
+
 class CellType(Enum):
     CODE = 1
     MARKDOWN = 2
+
 
 @dataclasses.dataclass
 class Cell:
@@ -16,6 +18,7 @@ class Cell:
     metadata: dict[str, str] = dataclasses.field(default_factory=dict)
     error: None | str = None
     result: Any | None = None
+    counter: int = 0
 
     @property
     def is_code(self) -> bool:

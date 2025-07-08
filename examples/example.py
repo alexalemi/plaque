@@ -8,6 +8,7 @@ import numpy as np
 # But then if you update the file and save.
 # $$ E = mc^2 $$
 
+
 def square(x):
     return x * x * x
 
@@ -37,9 +38,9 @@ x = 1 * 3
 square(1 + 2)
 
 
-'''Do
+"""Do
 single quotes work as well?
-'''
+"""
 
 """ Yes they do. """
 
@@ -49,7 +50,7 @@ import pandas as pd
 data = {
     "Name": ["Alice", "Bob", "Charlie", "David"],
     "Age": [25, 30, 35, 28],
-    "City": ["New York", "London", "Paris", "Tokyo"]
+    "City": ["New York", "London", "Paris", "Tokyo"],
 }
 
 # Create a DataFrame from the dictionary
@@ -60,4 +61,4 @@ df
 # %%
 
 # Testing errors
-1/0
+1 / 0

@@ -1,6 +1,5 @@
 """The main python file parser"""
 
-
 import re
 from enum import Enum
 from typing import TextIO, Generator
@@ -17,24 +16,28 @@ def parse_cell_boundary(line: str) -> tuple[str, CellType, dict[str, str]]:
     content = line.strip()
     if not content.startswith("# %%"):
         raise ValueError(f"Invalid cell boundary line: {line}")
-    
+
     content = content[4:].strip()  # Remove "# %%" and whitespace
-    
+
     # Look for [cell_type] marker
     cell_type = CellType.CODE
-    cell_type_match = re.search(r'\[([^\]]*)\]', content)
+    cell_type_match = re.search(r"\[([^\]]*)\]", content)
     if cell_type_match:
         cell_type_str = cell_type_match.group(1)
         if cell_type_str.lower() in ("markdown", "md"):
             cell_type = CellType.MARKDOWN
         # Remove the [cell_type] part from content
-        content = content[:cell_type_match.start()].strip() + " " + content[cell_type_match.end():].strip()
+        content = (
+            content[: cell_type_match.start()].strip()
+            + " "
+            + content[cell_type_match.end() :].strip()
+        )
         content = content.strip()
-    
+
     # Now split title from metadata
     title = ""
     metadata_str = ""
-    
+
     # Look for key=value patterns - check if the content starts with metadata
     if re.match(r'^\w+=["\']?[^"\']*', content):
         # Content starts with metadata, no title
@@ -44,12 +47,12 @@ def parse_cell_boundary(line: str) -> tuple[str, CellType, dict[str, str]]:
         # Look for metadata after whitespace
         metadata_match = re.search(r'\s+(\w+=["\']?[^"\']*)', content)
         if metadata_match:
-            title = content[:metadata_match.start()].strip()
-            metadata_str = content[metadata_match.start():].strip()
+            title = content[: metadata_match.start()].strip()
+            metadata_str = content[metadata_match.start() :].strip()
         else:
             title = content.strip()
             metadata_str = ""
-    
+
     # Parse metadata
     metadata = {}
     if metadata_str:

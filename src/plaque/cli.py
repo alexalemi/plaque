@@ -1,16 +1,26 @@
 from .parser import parse
 from .formatter import format
-from .environment import Environment
 from .server import start_notebook_server
 from .processor import Processor
 import logging
 import sys
 import webbrowser
 from pathlib import Path
+from functools import partial
 
 import click
 
 logger = logging.getLogger(__name__)
+
+
+def process_notebook(input_path: str | Path, processor: Processor) -> str:
+    logger.info(f"Processing {input_path}")
+
+    with open(input_path, "r") as f:
+        cells = list(parse(f))
+
+    cells = processor.process_cells(cells)
+    return format(cells)
 
 
 @click.group()
@@ -30,33 +40,33 @@ def main(verbose):
 def render(input, output, open_browser):
     """
     Render a Python notebook file to static HTML.
-    
+
     INPUT: Path to the Python notebook file
     OUTPUT: Path for the HTML output (optional, defaults to INPUT.html)
-    
+
     Examples:
-    
+
       plaque render my_notebook.py
       plaque render my_notebook.py output.html
     """
     input_path = Path(input).resolve()
-    
+
     if output is None:
-        output_path = input_path.with_suffix('.html')
+        output_path = input_path.with_suffix(".html")
     else:
         output_path = Path(output)
-    
+
     try:
-        html_content = Processor().process_file(str(input_path))
-        
-        with open(output_path, 'w') as f:
+        html_content = process_notebook(input_path, Processor())
+
+        with open(output_path, "w") as f:
             f.write(html_content)
-        
+
         click.echo(f"Generated: {output_path}")
-        
+
         if open_browser:
             webbrowser.open(f"file://{output_path.resolve()}")
-            
+
     except Exception as e:
         click.echo(f"Error processing {input_path}: {e}", err=True)
         sys.exit(1)
@@ -69,24 +79,24 @@ def render(input, output, open_browser):
 def watch(input, port, open_browser):
     """
     Start live server with auto-reload for a Python notebook file.
-    
+
     INPUT: Path to the Python notebook file
-    
+
     Examples:
-    
+
       plaque watch my_notebook.py
       plaque watch my_notebook.py --port 8000
       plaque watch my_notebook.py --open
     """
     input_path = Path(input).resolve()
-    processor = Processor()
-    
+    callback = partial(process_notebook, processor=Processor())
+
     try:
         start_notebook_server(
             notebook_path=input_path,
             port=port,
-            regenerate_callback=processor.process_file,
-            open_browser=open_browser
+            regenerate_callback=callback,
+            open_browser=open_browser,
         )
     except ImportError as e:
         click.echo(f"Server dependencies not available: {e}", err=True)

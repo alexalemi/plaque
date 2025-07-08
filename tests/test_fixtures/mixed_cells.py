@@ -1,7 +1,9 @@
 # Mixed cell types test file
 
+
 def hello():
     return "world"
+
 
 # %% [markdown]
 # This is a markdown cell
@@ -13,10 +15,10 @@ x = 1
 
 y = 2
 
-'''
+"""
 This is multiline
 triple quoted markdown
-'''
+"""
 
 # %% Final Code Cell
 

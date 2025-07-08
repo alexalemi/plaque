@@ -1,7 +1,9 @@
 # A simple test.
 
+
 def foo(x):
     return x + 1
+
 
 # %%
 
