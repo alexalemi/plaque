@@ -1,4 +1,6 @@
-"""The main execution environment."""
+"""The main execution environment.
+
+Represents a simple python environment with its own locals and globals."""
 
 import ast
 import sys
@@ -168,6 +170,3 @@ class Environment:
         else:
             # Fallback to simple error message
             return f"{error_type}: {error_msg}"
-
-
-

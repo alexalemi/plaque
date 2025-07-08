@@ -2,6 +2,7 @@ from .parser import parse
 from .formatter import format
 from .environment import Environment
 from .server import start_notebook_server
+from .processor import Processor
 import logging
 import sys
 import webbrowser
@@ -10,21 +11,6 @@ from pathlib import Path
 import click
 
 logger = logging.getLogger(__name__)
-
-
-def process_notebook(input_path: str) -> str:
-    """Process a notebook file and return the HTML content."""
-    logger.info(f"Processing {input_path}")
-    
-    with open(input_path, 'r') as f:
-        cells = list(parse(f))
-
-    env = Environment()
-    for cell in cells:
-        if cell.is_code:
-            env.execute_cell(cell)
-
-    return format(cells)
 
 
 @click.group()
@@ -61,7 +47,7 @@ def render(input, output, open_browser):
         output_path = Path(output)
     
     try:
-        html_content = process_notebook(str(input_path))
+        html_content = Processor().process_file(str(input_path))
         
         with open(output_path, 'w') as f:
             f.write(html_content)
@@ -93,12 +79,13 @@ def watch(input, port, open_browser):
       plaque watch my_notebook.py --open
     """
     input_path = Path(input).resolve()
+    processor = Processor()
     
     try:
         start_notebook_server(
             notebook_path=input_path,
             port=port,
-            regenerate_callback=process_notebook,
+            regenerate_callback=processor.process_file,
             open_browser=open_browser
         )
     except ImportError as e:

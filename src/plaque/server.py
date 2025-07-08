@@ -8,13 +8,17 @@ import os
 import webbrowser
 import time
 import json
-import urllib.parse
 from pathlib import Path
 from typing import Callable, Optional
 
 import click
 
 from .watcher import FileWatcher
+
+
+class ReusableTCPServer(socketserver.TCPServer):
+    """TCPServer that allows address reuse."""
+    allow_reuse_address = True
 
 
 class NotebookHTTPServer:
@@ -67,7 +71,7 @@ class NotebookHTTPServer:
                 # Create custom handler for auto-reload functionality
                 handler_class = self._create_request_handler()
                 
-                with socketserver.TCPServer(("", self.port), handler_class) as httpd:
+                with ReusableTCPServer(("", self.port), handler_class) as httpd:
                     url = f"http://localhost:{self.port}/"
                     
                     click.echo(f"Serving {self.notebook_path.name} at {url}")
@@ -76,10 +80,7 @@ class NotebookHTTPServer:
                     if open_browser:
                         webbrowser.open(url)
                     
-                    try:
-                        httpd.serve_forever()
-                    except KeyboardInterrupt:
-                        click.echo("\nStopping server...")
+                    httpd.serve_forever()
             finally:
                 # Restore original working directory
                 os.chdir(original_cwd)
@@ -158,7 +159,7 @@ class NotebookHTTPServer:
             
             def log_message(self, format, *args):
                 # Suppress log messages for reload_check requests
-                if '/reload_check' not in args[0]:
+                if args and '/reload_check' not in str(args[0]):
                     super().log_message(format, *args)
         
         return NotebookRequestHandler
