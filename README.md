@@ -7,7 +7,7 @@ tracking.
 
 ## Features
 
-- **Local-first**: Uses plain Python files as the source - no special file formats
+- **Local-first**: Uses plain Python files as the source - and your own editor - no special file formats
 - **Live Updates**: Browser preview updates in real-time as you edit
 - **Rich Output**: Supports Markdown, LaTeX equations, plots, DataFrames, and more
 - **Flexible Format**: Supports both `# %%` markers and multiline comments for cells
