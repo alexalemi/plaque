@@ -15,12 +15,14 @@ tracking.
 
 ## Principles
 
-Many systems support reactive notebooks, like marimo, observable, pluto, etc.
-Plaque is meant to be a simple thing that provies 80% of the utility with a
-very simple package.  The core idea is that your files should only run as they
-would if you ran them from scratch from top to bottom, but we don't actually
-have to rerun every cell every time.  Instead, we only ever re-execute any cell
-you modify and any cells later in the document that might depend on that cell.
+Many systems support reactive notebooks, like [clerk](https://clerk.vision/),
+[marimo](https://marimo.io/),
+[observable](https://observablehq.com/framework/),
+[pluto](https://plutojl.org/), etc. Plaque is meant to be a simple thing that
+provides 80% of the utility with a very simple package.  The core idea is that
+your files should only run as they would if you ran them from scratch from top
+to bottom, but we don't actually have to rerun every cell every time.  Instead,
+we only ever re-execute any cell you modify and any cells later in the document.
 
 In this way, you can have most of the benefits for reactivity and live
 updating, but still get caching and some gaurentee that you don't have to
