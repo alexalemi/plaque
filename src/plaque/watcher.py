@@ -24,6 +24,25 @@ class NotebookFileHandler(FileSystemEventHandler):
         if Path(event.src_path).resolve() == self.file_path:
             self.callback(event.src_path)
 
+    def on_moved(self, event: FileSystemEvent) -> None:
+        if event.is_directory:
+            return
+
+        # Check if the destination file is our target file
+        if (
+            hasattr(event, "dest_path")
+            and Path(event.dest_path).resolve() == self.file_path
+        ):
+            self.callback(event.dest_path)
+
+    def on_created(self, event: FileSystemEvent) -> None:
+        if event.is_directory:
+            return
+
+        # Check if the created file is our target file
+        if Path(event.src_path).resolve() == self.file_path:
+            self.callback(event.src_path)
+
 
 class FileWatcher:
     """Watches a notebook file for changes and triggers callbacks."""

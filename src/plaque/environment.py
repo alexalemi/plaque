@@ -8,7 +8,7 @@ import traceback
 from types import CodeType
 from typing import Any, Optional
 from contextlib import redirect_stdout, redirect_stderr
-from io import StringIO
+from .io import NotebookStdout
 from .cell import Cell
 from .display import capture_matplotlib_plots
 
@@ -54,8 +54,8 @@ class Environment:
         self.counter += 1
 
         # Create buffers for output capture
-        stdout_buffer = StringIO()
-        stderr_buffer = StringIO()
+        stdout_buffer = io.NotebookStdout(sys.stdout)
+        stderr_buffer = io.NotebookStdout(sys.stderr)
 
         try:
             # Parse the cell content

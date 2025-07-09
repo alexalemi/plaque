@@ -260,7 +260,7 @@ class TestIntegration:
 
 class TestFStringSupport:
     """Test f-string and multiline string support."""
-    
+
     def test_fstring_multiline_assignment(self):
         """Test that f-strings with multiline content are not treated as markdown."""
         content = """# Test f-string

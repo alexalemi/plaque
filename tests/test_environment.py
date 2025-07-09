@@ -450,15 +450,15 @@ class TestMemoryAndState:
         # Import in first cell
         cell1 = Cell(CellType.CODE, "import math", 1)
         env.execute_cell(cell1)
-        
+
         # Use import in second cell
         cell2 = Cell(CellType.CODE, "result = math.sqrt(16)", 2)
         env.execute_cell(cell2)
-        
+
         # Use import in third cell with expression
         cell3 = Cell(CellType.CODE, "math.pi", 3)
         result = env.execute_cell(cell3)
-        
+
         assert cell1.error is None
         assert cell2.error is None
         assert cell3.error is None
