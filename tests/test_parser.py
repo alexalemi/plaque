@@ -258,6 +258,125 @@ class TestIntegration:
         assert CellType.MARKDOWN in cell_types
 
 
+class TestFStringSupport:
+    """Test f-string and multiline string support."""
+    
+    def test_fstring_multiline_assignment(self):
+        """Test that f-strings with multiline content are not treated as markdown."""
+        content = """# Test f-string
+insights = f'''
+<div>
+    <h3>Test</h3>
+    <p>Value: {value}</p>
+</div>'''
+
+x = 1
+"""
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 1
+        assert cells[0].type == CellType.CODE
+        assert "insights = f'''" in cells[0].content
+        assert "<div>" in cells[0].content
+        assert "x = 1" in cells[0].content
+
+    def test_fstring_with_double_quotes(self):
+        """Test f-string with double quotes."""
+        content = '''# Test f-string
+html = f"""
+<div class="test">
+    <p>Value: {value}</p>
+</div>"""
+
+y = 2
+'''
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 1
+        assert cells[0].type == CellType.CODE
+        assert 'html = f"""' in cells[0].content
+        assert '<div class="test">' in cells[0].content
+        assert "y = 2" in cells[0].content
+
+    def test_indented_closing_quotes(self):
+        """Test that indented closing quotes are not treated as markdown."""
+        content = '''def create_html():
+    return f"""
+    <div>
+        <p>Content</p>
+    </div>
+    """
+
+x = 1
+'''
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 1
+        assert cells[0].type == CellType.CODE
+        assert "def create_html():" in cells[0].content
+        assert "x = 1" in cells[0].content
+
+    def test_regular_multiline_string_assignment(self):
+        """Test regular multiline string assignment."""
+        content = '''# Test regular multiline string
+text = """
+This is a regular multiline string
+with multiple lines
+"""
+
+x = 1
+'''
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 1
+        assert cells[0].type == CellType.CODE
+        assert 'text = """' in cells[0].content
+        assert "regular multiline string" in cells[0].content
+        assert "x = 1" in cells[0].content
+
+    def test_standalone_markdown_still_works(self):
+        """Test that standalone markdown cells still work correctly."""
+        content = '''"""
+# This is a markdown cell
+This should be treated as markdown
+"""
+
+x = 1
+'''
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 2
+        assert cells[0].type == CellType.MARKDOWN
+        assert "This is a markdown cell" in cells[0].content
+        assert cells[1].type == CellType.CODE
+        assert "x = 1" in cells[1].content
+
+    def test_mixed_fstring_and_markdown(self):
+        """Test file with both f-strings and markdown cells."""
+        content = '''"""
+# Initial markdown
+This is markdown content
+"""
+
+html = f"""
+<div>
+    <p>Value: {value}</p>
+</div>"""
+
+"""
+# Another markdown cell
+More markdown content
+"""
+
+x = 1
+'''
+        cells = list(parse(io.StringIO(content)))
+        assert len(cells) == 4
+        assert cells[0].type == CellType.MARKDOWN
+        assert "Initial markdown" in cells[0].content
+        assert cells[1].type == CellType.CODE
+        assert 'html = f"""' in cells[1].content
+        assert cells[2].type == CellType.MARKDOWN
+        assert "Another markdown cell" in cells[2].content
+        assert cells[3].type == CellType.CODE
+        assert "x = 1" in cells[3].content
+
+
 class TestEdgeCases:
     """Test edge cases and unusual inputs."""
 

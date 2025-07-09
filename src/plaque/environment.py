@@ -26,7 +26,7 @@ except ImportError:
 class Environment:
     def __init__(self):
         self.locals = {"__name__": "__main__"}
-        self.globals = {}
+        self.globals = self.locals  # Use same namespace for globals and locals
         self.counter = 0
 
     def eval(self, source: str | CodeType):

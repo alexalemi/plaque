@@ -66,8 +66,58 @@ def parse_cell_boundary(line: str) -> tuple[str, CellType, dict[str, str]]:
 def parse(input: TextIO) -> Generator[Cell, None, None]:
     cell = Cell(CellType.CODE, "", lineno=0)
 
-    def cell_boundary(line: str) -> bool:
-        return line.startswith(("# %%", '"""', "'''"))
+    def is_fstring_or_assignment(line: str, previous_lines: list[str]) -> bool:
+        """Check if a line with triple quotes is part of an f-string or assignment."""
+        stripped = line.strip()
+        
+        # Check if it's indented (likely closing a multiline string)
+        if line.startswith('    ') or line.startswith('\t'):
+            return True
+            
+        # Check if it's part of an assignment on the same line
+        # e.g., "var = f'''content'''"
+        if '=' in line and ('f"""' in line or 'f"' in line or "f'" in line):
+            return True
+            
+        # Check if we're currently inside a multiline string assignment
+        # by looking for the opening and checking if we've seen the closing
+        in_multiline_string = False
+        string_delimiter = None
+        
+        for prev_line in reversed(previous_lines[-10:]):  # Look back up to 10 lines
+            prev_stripped = prev_line.strip()
+            if not prev_stripped:
+                continue
+                
+            # Check if we find a closing delimiter first (means we're not in a string)
+            if (prev_stripped.endswith('"""') or prev_stripped.endswith("'''")) and '=' not in prev_stripped:
+                break
+                
+            # Check if we find an opening multiline string assignment
+            if ('=' in prev_stripped and 
+                (prev_stripped.endswith('f"""') or prev_stripped.endswith('f"') or prev_stripped.endswith("f'") or
+                 prev_stripped.endswith('"""') or prev_stripped.endswith('""') or prev_stripped.endswith("''"))):
+                in_multiline_string = True
+                break
+                
+            # If we hit a line that's clearly not part of the assignment, stop
+            if prev_stripped.endswith(':') or prev_stripped.startswith(('def ', 'class ', 'if ', 'for ', 'while ')):
+                break
+        
+        return in_multiline_string
+
+    def cell_boundary(line: str, previous_lines: list[str] = None) -> bool:
+        if previous_lines is None:
+            previous_lines = []
+            
+        if line.startswith("# %%"):
+            return True
+            
+        # For triple quotes, check if they're part of Python code
+        if line.startswith(('"""', "'''")):
+            return not is_fstring_or_assignment(line, previous_lines)
+            
+        return False
 
     class State(Enum):
         CODE = 1
@@ -76,13 +126,14 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
         TRIPLE_SINGLE_QUOTE = 4
 
     state = State.CODE
+    previous_lines = []
 
     for i, line in enumerate(input):
         match state:
             case State.CODE:
                 # we are inside the code case.
 
-                if cell_boundary(line):
+                if cell_boundary(line, previous_lines):
                     if cell.content.strip():
                         cell.content = cell.content.strip()
                         yield cell
@@ -148,7 +199,7 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                     cell.content += line
 
             case State.MARKDOWN:
-                if cell_boundary(line):
+                if cell_boundary(line, previous_lines):
                     if cell.content:
                         cell.content = cell.content.strip()
                         yield cell
@@ -242,6 +293,11 @@ def parse(input: TextIO) -> Generator[Cell, None, None]:
                     state = State.CODE
                 else:
                     cell.content += line
+                    
+        # Track previous lines for context
+        previous_lines.append(line)
+        if len(previous_lines) > 10:  # Keep only last 10 lines
+            previous_lines.pop(0)
 
     if cell.content.strip():
         cell.content = cell.content.strip()
