@@ -25,9 +25,10 @@ class ReusableTCPServer(socketserver.TCPServer):
 class NotebookHTTPServer:
     """HTTP server for serving notebooks with live reload."""
 
-    def __init__(self, notebook_path: Path, port: int = 5000):
+    def __init__(self, notebook_path: Path, port: int = 5000, bind: str = "localhost"):
         self.notebook_path = notebook_path
         self.port = port
+        self.bind = bind
         self.temp_dir: Optional[str] = None
         self.watcher: Optional[FileWatcher] = None
         self.html_path: Optional[Path] = None
@@ -78,8 +79,10 @@ class NotebookHTTPServer:
                 # Create custom handler for auto-reload functionality
                 handler_class = self._create_request_handler()
 
-                with ReusableTCPServer(("", self.port), handler_class) as httpd:
-                    url = f"http://localhost:{self.port}/"
+                with ReusableTCPServer((self.bind, self.port), handler_class) as httpd:
+                    # Use the bind address in the URL, but show localhost for 0.0.0.0
+                    display_host = "localhost" if self.bind == "0.0.0.0" else self.bind
+                    url = f"http://{display_host}:{self.port}/"
 
                     click.echo(f"Serving {self.notebook_path.name} at {url}")
                     click.echo("Press Ctrl+C to stop")
@@ -177,7 +180,8 @@ class NotebookHTTPServer:
 def start_notebook_server(
     notebook_path: Path,
     port: int,
-    regenerate_callback: Callable[[str], str],
+    bind: str = "localhost",
+    regenerate_callback: Callable[[str], str] = None,
     open_browser: bool = False,
 ):
     """
@@ -186,8 +190,9 @@ def start_notebook_server(
     Args:
         notebook_path: Path to the notebook file
         port: Port to serve on
+        bind: Host/IP to bind to (default: localhost)
         regenerate_callback: Function that takes a file path and returns HTML content
         open_browser: Whether to open browser automatically
     """
-    server = NotebookHTTPServer(notebook_path, port)
+    server = NotebookHTTPServer(notebook_path, port, bind)
     server.start(regenerate_callback, open_browser)

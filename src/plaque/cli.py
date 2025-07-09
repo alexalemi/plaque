@@ -138,8 +138,9 @@ def watch(input, output, open_browser):
 @main.command()
 @click.argument("input", type=click.Path(exists=True, dir_okay=False))
 @click.option("--port", default=5000, help="Port for live server (default: 5000)")
+@click.option("--bind", default="localhost", help="Host/IP to bind to (default: localhost)")
 @click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
-def serve(input, port, open_browser):
+def serve(input, port, bind, open_browser):
     """
     Start live server with auto-reload for a Python notebook file.
 
@@ -158,6 +159,7 @@ def serve(input, port, open_browser):
         start_notebook_server(
             notebook_path=input_path,
             port=port,
+            bind=bind,
             regenerate_callback=callback,
             open_browser=open_browser,
         )
