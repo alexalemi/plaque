@@ -62,6 +62,8 @@ class Processor:
             for i, cell in enumerate(cells):
                 if i < len(self.cells) and cell.is_code:
                     cell.copy_execution(self.cells[i])
+            # Update counters for all code cells to maintain sequence
+            self._update_cell_counters(cells)
             self.cells = cells
             return cells
 
@@ -86,5 +88,15 @@ class Processor:
                 logger.info(f"Executing cell {i+1}")
                 self.environment.execute_cell(cells[i])
 
+        # Update counters for all code cells to maintain proper sequence
+        self._update_cell_counters(cells)
+
         self.cells = cells
         return cells
+
+    def _update_cell_counters(self, cells: list[Cell]) -> None:
+        """Update cell counters to maintain proper execution sequence."""
+        for i, cell in enumerate(cells):
+            if cell.is_code:
+                cell.counter = self.environment.counter
+                self.environment.counter += 1
