@@ -287,7 +287,10 @@ class TestMatplotlibIntegration:
         """Test that matplotlib figures are captured."""
         # Mock a matplotlib figure
         mock_figure = Mock()
-        mock_capture.return_value.__enter__.return_value = [mock_figure]
+        mock_capture_obj = Mock()
+        mock_capture_obj.figures = [mock_figure]
+        mock_capture_obj.close_figures = Mock()
+        mock_capture.return_value.__enter__.return_value = mock_capture_obj
         mock_capture.return_value.__exit__.return_value = None
 
         env = Environment()
@@ -303,7 +306,10 @@ class TestMatplotlibIntegration:
     @patch("src.plaque.environment.capture_matplotlib_plots")
     def test_no_matplotlib_figures(self, mock_capture):
         """Test normal execution when no figures are created."""
-        mock_capture.return_value.__enter__.return_value = []
+        mock_capture_obj = Mock()
+        mock_capture_obj.figures = []
+        mock_capture_obj.close_figures = Mock()
+        mock_capture.return_value.__enter__.return_value = mock_capture_obj
         mock_capture.return_value.__exit__.return_value = None
 
         env = Environment()
@@ -318,7 +324,10 @@ class TestMatplotlibIntegration:
     def test_matplotlib_with_statements(self, mock_capture):
         """Test matplotlib capture with non-expression statements."""
         mock_figure = Mock()
-        mock_capture.return_value.__enter__.return_value = [mock_figure]
+        mock_capture_obj = Mock()
+        mock_capture_obj.figures = [mock_figure]
+        mock_capture_obj.close_figures = Mock()
+        mock_capture.return_value.__enter__.return_value = mock_capture_obj
         mock_capture.return_value.__exit__.return_value = None
 
         env = Environment()
@@ -583,39 +592,43 @@ class TestMatplotlibImprovements:
             # If matplotlib is not installed, the test should pass
             pass
 
-    @patch("src.plaque.environment.Environment._get_all_matplotlib_figures")
     @patch("src.plaque.environment.capture_matplotlib_plots")
-    def test_all_figures_detected(self, mock_capture, mock_get_all):
-        """Test that all active figures are detected, not just captured ones."""
-        # Mock capture returns empty but _get_all_matplotlib_figures returns figures
-        mock_capture.return_value.__enter__.return_value = []
-        mock_capture.return_value.__exit__.return_value = None
-
+    def test_context_manager_figures_prioritized(self, mock_capture):
+        """Test that figures from context manager are properly used."""
+        # Mock capture returns figures
         mock_figure = Mock()
-        mock_get_all.return_value = [mock_figure]
+        mock_capture_obj = Mock()
+        mock_capture_obj.figures = [mock_figure]
+        mock_capture_obj.close_figures = Mock()
+        mock_capture.return_value.__enter__.return_value = mock_capture_obj
+        mock_capture.return_value.__exit__.return_value = None
 
         env = Environment()
         cell = Cell(CellType.CODE, "2 + 2", 1)  # Simple expression
 
         env.execute_cell(cell)
 
-        # Should use figure from _get_all_matplotlib_figures
+        # Should use figure from context manager
         assert cell.result == mock_figure
-        mock_get_all.assert_called()
+        mock_capture_obj.close_figures.assert_called_once()
 
-    def test_get_all_matplotlib_figures_empty(self):
-        """Test _get_all_matplotlib_figures returns empty list on errors."""
+    def test_matplotlib_return_value_suppression(self):
+        """Test that matplotlib return values are properly suppressed."""
         env = Environment()
 
-        # Should handle import errors gracefully
-        with patch("builtins.__import__", side_effect=ImportError):
-            figures = env._get_all_matplotlib_figures()
-            assert figures == []
+        # Test matplotlib Text object is detected as matplotlib return value
+        import matplotlib.pyplot as plt
+        import matplotlib
 
-        # Should handle other exceptions gracefully
-        with patch("builtins.__import__", side_effect=Exception):
-            figures = env._get_all_matplotlib_figures()
-            assert figures == []
+        matplotlib.use("Agg")
+
+        plt.figure()
+        text_obj = plt.title("Test")
+
+        is_matplotlib_return = env._is_matplotlib_return_value(text_obj)
+        assert is_matplotlib_return == True
+
+        plt.close("all")
 
     def test_matplotlib_figure_display_format(self):
         """Test that matplotlib figures are properly formatted for display."""
