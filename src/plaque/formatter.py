@@ -118,27 +118,28 @@ def format_result(result: Any) -> str:
 
     renderable = to_renderable(result)
 
-    if isinstance(renderable, HTML):
-        return renderable.content
-    if isinstance(renderable, Markdown):
-        return format_markdown(renderable.content)
-    if isinstance(renderable, Text):
-        return f'<pre class="result-output">{escape_html(renderable.content)}</pre>'
-    if isinstance(renderable, PNG):
-        png_b64 = base64.b64encode(renderable.content).decode()
-        return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
-    if isinstance(renderable, JPEG):
-        jpeg_b64 = base64.b64encode(renderable.content).decode()
-        return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
-    if isinstance(renderable, SVG):
-        return f'<div class="svg-output">{renderable.content}</div>'
-    if isinstance(renderable, Latex):
-        return f'<div class="math-block">\\[{renderable.content}\\]</div>'
-    if isinstance(renderable, JSON):
-        json_str = json.dumps(renderable.content, indent=2)
-        return f'<pre class="json-output">{escape_html(json_str)}</pre>'
-
-    return f'<pre class="result-output">{escape_html(str(renderable))}</pre>'
+    match renderable:
+        case HTML(content):
+            return content
+        case Markdown(content):
+            return format_markdown(content)
+        case Text(content):
+            return f'<pre class="result-output">{escape_html(content)}</pre>'
+        case PNG(content):
+            png_b64 = base64.b64encode(content).decode()
+            return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
+        case JPEG(content):
+            jpeg_b64 = base64.b64encode(content).decode()
+            return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
+        case SVG(content):
+            return f'<div class="svg-output">{content}</div>'
+        case Latex(content):
+            return f'<div class="math-block">\\[{content}\\]</div>'
+        case JSON(content):
+            json_str = json.dumps(content, indent=2)
+            return f'<pre class="json-output">{escape_html(json_str)}</pre>'
+        case _:
+            return f'<pre class="result-output">{escape_html(str(renderable))}</pre>'
 
 
 def render_cell(cell: Cell) -> str:
