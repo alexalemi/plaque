@@ -2,7 +2,7 @@
 
 ## TODO
 
- - [ ] Serve images as files, consider separate json for use with `claude`.
+ - [X] Serve images as files, consider separate json for use with `claude`.
  - [ ] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
