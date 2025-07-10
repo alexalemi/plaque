@@ -1,4 +1,5 @@
 from .parser import parse
+from .ast_parser import parse_ast
 from .formatter import format
 from .server import start_notebook_server
 from .processor import Processor
@@ -16,12 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 def process_notebook(
-    input_path: str | Path, processor: Processor, image_dir: Optional[Path] = None
+    input_path: str | Path,
+    processor: Processor,
+    image_dir: Optional[Path] = None,
+    use_ast_parser: bool = False,
 ) -> str:
     logger.info(f"Processing {input_path}")
 
     with open(input_path, "r") as f:
-        cells = list(parse(f))
+        if use_ast_parser:
+            cells = list(parse_ast(f))
+        else:
+            cells = list(parse(f))
 
     cells = processor.process_cells(cells)
     return format(cells, image_dir)
@@ -29,19 +36,34 @@ def process_notebook(
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def main(verbose):
+@click.option(
+    "--use-ast-parser", is_flag=True, help="Use AST-based parser (experimental)"
+)
+@click.option(
+    "--use-dependency-tracking",
+    is_flag=True,
+    help="Use dependency tracking for smart execution",
+)
+@click.pass_context
+def main(ctx, verbose, use_ast_parser, use_dependency_tracking):
     """Plaque - A local-first notebook system for Python."""
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
 
+    # Store options in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj["use_ast_parser"] = use_ast_parser
+    ctx.obj["use_dependency_tracking"] = use_dependency_tracking
+
 
 @main.command()
 @click.argument("input", type=click.Path(exists=True, dir_okay=False))
 @click.argument("output", type=click.Path(), required=False)
 @click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
-def render(input, output, open_browser):
+@click.pass_context
+def render(ctx, input, output, open_browser):
     """
     Render a Python notebook file to static HTML.
 
@@ -61,7 +83,14 @@ def render(input, output, open_browser):
         output_path = Path(output)
 
     try:
-        html_content = process_notebook(input_path, Processor())
+        # Get options from context
+        use_ast_parser = ctx.obj.get("use_ast_parser", False)
+        use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+
+        processor = Processor(use_dependency_tracking=use_dependency_tracking)
+        html_content = process_notebook(
+            input_path, processor, use_ast_parser=use_ast_parser
+        )
 
         with open(output_path, "w") as f:
             f.write(html_content)
@@ -80,7 +109,8 @@ def render(input, output, open_browser):
 @click.argument("input", type=click.Path(exists=True, dir_okay=False))
 @click.argument("output", type=click.Path(), required=False)
 @click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
-def watch(input, output, open_browser):
+@click.pass_context
+def watch(ctx, input, output, open_browser):
     """
     Watch a Python notebook file and regenerate HTML on changes.
 
@@ -103,12 +133,18 @@ def watch(input, output, open_browser):
     else:
         output_path = Path(output)
 
-    processor = Processor()
+    # Get options from context
+    use_ast_parser = ctx.obj.get("use_ast_parser", False)
+    use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+
+    processor = Processor(use_dependency_tracking=use_dependency_tracking)
 
     def regenerate_html(file_path):
         """Regenerate HTML when file changes."""
         try:
-            html_content = process_notebook(input_path, processor)
+            html_content = process_notebook(
+                input_path, processor, use_ast_parser=use_ast_parser
+            )
             with open(output_path, "w") as f:
                 f.write(html_content)
             click.echo(f"Regenerated: {output_path}")
@@ -145,7 +181,8 @@ def watch(input, output, open_browser):
     "--bind", default="localhost", help="Host/IP to bind to (default: localhost)"
 )
 @click.option("--open", "open_browser", is_flag=True, help="Open browser automatically")
-def serve(input, port, bind, open_browser):
+@click.pass_context
+def serve(ctx, input, port, bind, open_browser):
     """
     Start live server with auto-reload for a Python notebook file.
 
@@ -159,11 +196,18 @@ def serve(input, port, bind, open_browser):
     """
     input_path = Path(input).resolve()
 
+    # Get options from context
+    use_ast_parser = ctx.obj.get("use_ast_parser", False)
+    use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+
     # Create callback that accepts image_dir parameter
     def callback_with_image_dir(
         notebook_path: str, image_dir: Optional[Path] = None
     ) -> str:
-        return process_notebook(notebook_path, Processor(), image_dir)
+        processor = Processor(use_dependency_tracking=use_dependency_tracking)
+        return process_notebook(
+            notebook_path, processor, image_dir, use_ast_parser=use_ast_parser
+        )
 
     try:
         start_notebook_server(
