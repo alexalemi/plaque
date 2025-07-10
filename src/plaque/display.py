@@ -177,24 +177,66 @@ def _handle_builtin_types(obj: Any) -> Optional[Renderable]:
     return None
 
 
+class _FigureCapture:
+    """Helper class to capture matplotlib figures during execution."""
+
+    def __init__(self):
+        self.figures = []
+        self.initial_fig_nums = set()
+        self.new_fig_nums = set()
+
+    def add_figure(self, fig):
+        """Add a figure to the capture list."""
+        self.figures.append(fig)
+
+    def close_figures(self):
+        """Close all captured figures and clean up."""
+        if matplotlib:
+            for fig_num in self.new_fig_nums:
+                plt.close(fig_num)
+
+
 @contextmanager
 def capture_matplotlib_plots():
-    """Context manager to capture matplotlib plots."""
+    """Context manager to capture matplotlib plots created during execution."""
     if not matplotlib:
-        yield []
+        # Return an empty capture object when matplotlib is not available
+        empty_capture = _FigureCapture()
+        yield empty_capture
         return
 
+    # Record figure numbers before execution
+    initial_fig_nums = set(plt.get_fignums())
+
     original_show = plt.show
-    captured_figures = []
+    capture = _FigureCapture()
+    capture.initial_fig_nums = initial_fig_nums
 
     def capture_show(*args, **kwargs):
         fig = plt.gcf()
         if fig.get_axes():
-            captured_figures.append(fig)
+            capture.add_figure(fig)
         # Don't call original show to prevent display in non-interactive backend
 
     plt.show = capture_show
     try:
-        yield captured_figures
+        yield capture
     finally:
+        # Restore original show function
         plt.show = original_show
+
+        # Find any new figures created during execution
+        current_fig_nums = set(plt.get_fignums())
+        new_fig_nums = current_fig_nums - initial_fig_nums
+        capture.new_fig_nums = new_fig_nums
+
+        # If no figures were captured via plt.show(), check for new figures
+        if not capture.figures and new_fig_nums:
+            for fig_num in new_fig_nums:
+                fig = plt.figure(fig_num)
+                if fig.get_axes():  # Only include figures with content
+                    capture.add_figure(fig)
+                    break  # Only capture the first new figure for now
+
+        # Store the figure numbers for later cleanup
+        # Don't close figures here - let the caller handle cleanup after processing
