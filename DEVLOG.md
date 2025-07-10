@@ -2,10 +2,13 @@
 
 ## TODO
 
+ - [ ] Serve images as files, consider separate json for use with `claude`.
+ - [ ] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [ ] Add SSE Updates. Server sent events with live updating
- - [ ] Enhance markdown Rendering, LaTeX, code, etc.
  - [ ] Documentation.
  - [ ] Package Setup.
+ - [ ] Enhanced pandas and plotting support (from marimo?)
+ - [ ] Add other mime types (pdf, video)
 
 ## 2025-07-08
 
