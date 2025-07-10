@@ -35,7 +35,9 @@ class NotebookHTTPServer:
         self.last_update: float = time.time()
 
     def start(
-        self, regenerate_callback: Callable[[str], str], open_browser: bool = False
+        self,
+        regenerate_callback: Callable[[str, Optional[Path]], str],
+        open_browser: bool = False,
     ):
         """Start the HTTP server with file watching."""
         self.temp_dir = None
@@ -47,10 +49,16 @@ class NotebookHTTPServer:
             temp_path = Path(self.temp_dir)
             self.html_path = temp_path / "index.html"
 
+            # Create images subdirectory
+            images_dir = temp_path / "images"
+            images_dir.mkdir(exist_ok=True)
+
             def regenerate_html():
                 """Regenerate HTML when file changes."""
                 try:
-                    html_content = regenerate_callback(str(self.notebook_path))
+                    html_content = regenerate_callback(
+                        str(self.notebook_path), images_dir
+                    )
                     # Inject auto-reload JavaScript
                     html_content = self._inject_auto_reload_script(html_content)
                     with open(self.html_path, "w") as f:
@@ -165,6 +173,35 @@ class NotebookHTTPServer:
                         )  # Convert to milliseconds
                     }
                     self.wfile.write(json.dumps(response).encode("utf-8"))
+                elif self.path.startswith("/images/"):
+                    # Serve images from the images directory
+                    image_filename = self.path[8:]  # Remove "/images/" prefix
+                    image_path = (
+                        Path(server_instance.temp_dir) / "images" / image_filename
+                    )
+
+                    if image_path.exists() and image_path.is_file():
+                        # Determine content type based on file extension
+                        if image_filename.endswith(".png"):
+                            content_type = "image/png"
+                        elif image_filename.endswith((".jpg", ".jpeg")):
+                            content_type = "image/jpeg"
+                        elif image_filename.endswith(".svg"):
+                            content_type = "image/svg+xml"
+                        else:
+                            content_type = "application/octet-stream"
+
+                        self.send_response(200)
+                        self.send_header("Content-Type", content_type)
+                        self.send_header(
+                            "Cache-Control", "max-age=3600"
+                        )  # Cache for 1 hour
+                        self.end_headers()
+
+                        with open(image_path, "rb") as f:
+                            self.wfile.write(f.read())
+                    else:
+                        self.send_error(404, "Image not found")
                 else:
                     # Use the default handler for all other requests
                     super().do_GET()
@@ -181,7 +218,7 @@ def start_notebook_server(
     notebook_path: Path,
     port: int,
     bind: str = "localhost",
-    regenerate_callback: Callable[[str], str] = None,
+    regenerate_callback: Callable[[str, Optional[Path]], str] = None,
     open_browser: bool = False,
 ):
     """

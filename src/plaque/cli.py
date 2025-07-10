@@ -8,20 +8,23 @@ import time
 import webbrowser
 from pathlib import Path
 from functools import partial
+from typing import Optional
 
 import click
 
 logger = logging.getLogger(__name__)
 
 
-def process_notebook(input_path: str | Path, processor: Processor) -> str:
+def process_notebook(
+    input_path: str | Path, processor: Processor, image_dir: Optional[Path] = None
+) -> str:
     logger.info(f"Processing {input_path}")
 
     with open(input_path, "r") as f:
         cells = list(parse(f))
 
     cells = processor.process_cells(cells)
-    return format(cells)
+    return format(cells, image_dir)
 
 
 @click.group()
@@ -155,14 +158,19 @@ def serve(input, port, bind, open_browser):
       plaque serve my_notebook.py --open
     """
     input_path = Path(input).resolve()
-    callback = partial(process_notebook, processor=Processor())
+
+    # Create callback that accepts image_dir parameter
+    def callback_with_image_dir(
+        notebook_path: str, image_dir: Optional[Path] = None
+    ) -> str:
+        return process_notebook(notebook_path, Processor(), image_dir)
 
     try:
         start_notebook_server(
             notebook_path=input_path,
             port=port,
             bind=bind,
-            regenerate_callback=callback,
+            regenerate_callback=callback_with_image_dir,
             open_browser=open_browser,
         )
     except ImportError as e:

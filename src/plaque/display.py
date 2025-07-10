@@ -93,12 +93,16 @@ def _try_ipython_reprs(obj: Any) -> Optional[Renderable]:
     """Try IPython-style _repr_*_() methods in order of preference."""
     if hasattr(obj, "_repr_html_"):
         try:
-            return HTML(obj._repr_html_())
+            html_repr = obj._repr_html_()
+            if html_repr:
+                return HTML(html_repr)
         except Exception:
             pass
     if hasattr(obj, "_repr_svg_"):
         try:
-            return SVG(obj._repr_svg_())
+            svg_repr = obj._repr_svg_()
+            if svg_repr:
+                return SVG(svg_repr)
         except Exception:
             pass
     if hasattr(obj, "_repr_png_"):
@@ -115,17 +119,23 @@ def _try_ipython_reprs(obj: Any) -> Optional[Renderable]:
             pass
     if hasattr(obj, "_repr_markdown_"):
         try:
-            return Markdown(obj._repr_markdown_())
+            md_repr = obj._repr_markdown_()
+            if md_repr:
+                return Markdown(md_repr)
         except Exception:
             pass
     if hasattr(obj, "_repr_latex_"):
         try:
-            return Latex(obj._repr_latex_())
+            latex_repr = obj._repr_latex_()
+            if latex_repr:
+                return Latex(latex_repr)
         except Exception:
             pass
     if hasattr(obj, "_repr_json_"):
         try:
-            return JSON(obj._repr_json_())
+            json_repr = obj._repr_json_()
+            if json_repr:
+                return JSON(json_repr)
         except Exception:
             pass
     return None
@@ -138,8 +148,10 @@ def _handle_builtin_types(obj: Any) -> Optional[Renderable]:
         try:
             img_buffer = io.BytesIO()
             obj.savefig(img_buffer, format="png", bbox_inches="tight", dpi=100)
+            img_buffer.seek(0)  # Reset buffer position
+            png_data = img_buffer.getvalue()
             plt.close(obj)  # Free memory
-            return PNG(img_buffer.getvalue())
+            return PNG(png_data)
         except Exception as e:
             return Text(f"Error displaying plot: {e}")
 

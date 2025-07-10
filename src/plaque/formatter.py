@@ -3,13 +3,25 @@
 import base64
 import html
 import json
+import os
 import re
 from collections.abc import Iterable
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 
 from .cell import Cell, CellType
 from .display import to_renderable
 from .renderables import HTML, JPEG, JSON, Latex, Markdown, PNG, SVG, Text
+
+# Global counter for unique image filenames
+_image_counter = 0
+
+
+def _get_next_image_name(extension: str) -> str:
+    """Generate a unique image filename."""
+    global _image_counter
+    _image_counter += 1
+    return f"img_{_image_counter:03d}.{extension}"
 
 
 def escape_html(text: str) -> str:
@@ -111,7 +123,7 @@ def format_markdown(content: str) -> str:
         return "\n".join(formatted_paragraphs)
 
 
-def format_result(result: Any) -> str:
+def format_result(result: Any, image_dir: Optional[Path] = None) -> str:
     """Format cell execution result by converting it to a renderable and then to HTML."""
     if result is None:
         return ""
@@ -126,11 +138,29 @@ def format_result(result: Any) -> str:
         case Text(content):
             return f'<pre class="result-output">{escape_html(content)}</pre>'
         case PNG(content):
-            png_b64 = base64.b64encode(content).decode()
-            return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
+            if image_dir is not None:
+                # Save to file and return file reference
+                filename = _get_next_image_name("png")
+                filepath = image_dir / filename
+                with open(filepath, "wb") as f:
+                    f.write(content)
+                return f'<div class="png-output"><img src="/images/{filename}" style="max-width: 100%; height: auto;"></div>'
+            else:
+                # Use base64 data URI (default behavior)
+                png_b64 = base64.b64encode(content).decode()
+                return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
         case JPEG(content):
-            jpeg_b64 = base64.b64encode(content).decode()
-            return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
+            if image_dir is not None:
+                # Save to file and return file reference
+                filename = _get_next_image_name("jpg")
+                filepath = image_dir / filename
+                with open(filepath, "wb") as f:
+                    f.write(content)
+                return f'<div class="jpeg-output"><img src="/images/{filename}" style="max-width: 100%; height: auto;"></div>'
+            else:
+                # Use base64 data URI (default behavior)
+                jpeg_b64 = base64.b64encode(content).decode()
+                return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
         case SVG(content):
             return f'<div class="svg-output">{content}</div>'
         case Latex(content):
@@ -142,7 +172,7 @@ def format_result(result: Any) -> str:
             return f'<pre class="result-output">{escape_html(str(renderable))}</pre>'
 
 
-def render_cell(cell: Cell) -> str:
+def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
     """Render a single cell to HTML."""
     cell_id = f"cell-{cell.lineno}"
 
@@ -194,7 +224,7 @@ def render_cell(cell: Cell) -> str:
         if cell.result is not None:
             html_parts.append('<div class="cell-output">')
             html_parts.append(
-                f'<div class="output-content">{format_result(cell.result)}</div>'
+                f'<div class="output-content">{format_result(cell.result, image_dir)}</div>'
             )
             html_parts.append("</div>")
 
@@ -231,8 +261,8 @@ def get_html_template() -> str:
         return f.read()
 
 
-def format(cells: Iterable[Cell]) -> str:
+def format(cells: Iterable[Cell], image_dir: Optional[Path] = None) -> str:
     """Format cells into a complete HTML document."""
-    cell_html = "\n".join(render_cell(cell) for cell in cells)
+    cell_html = "\n".join(render_cell(cell, image_dir) for cell in cells)
     template = get_html_template()
     return template.replace("{content}", cell_html)
