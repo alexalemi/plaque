@@ -1,10 +1,15 @@
 """The HTML Renderer."""
 
+import base64
 import html
+import json
 import re
-from typing import Any
-from .cell import Cell, CellType
 from collections.abc import Iterable
+from typing import Any
+
+from .cell import Cell, CellType
+from .display import to_renderable
+from .renderables import HTML, JPEG, JSON, Latex, Markdown, PNG, SVG, Text
 
 
 def escape_html(text: str) -> str:
@@ -65,9 +70,7 @@ def format_markdown(content: str) -> str:
             html,
             flags=re.DOTALL,
         )
-        html = re.sub(
-            r"\$([^$]+)\$", r'<span class="math-inline">\\(\1\\)</span>', html
-        )
+        html = re.sub(r"\$([^$]+)", r'<span class="math-inline">\\(\1\\)</span>', html)
 
         return html
 
@@ -94,9 +97,7 @@ def format_markdown(content: str) -> str:
             text,
             flags=re.DOTALL,
         )
-        text = re.sub(
-            r"\$([^$]+)\$", r'<span class="math-inline">\\(\1\\)</span>', text
-        )
+        text = re.sub(r"\$([^$]+)", r'<span class="math-inline">\\(\1\\)</span>', text)
 
         # Convert line breaks to paragraphs
         paragraphs = text.split("\n\n")
@@ -111,14 +112,33 @@ def format_markdown(content: str) -> str:
 
 
 def format_result(result: Any) -> str:
-    """Format cell execution result."""
+    """Format cell execution result by converting it to a renderable and then to HTML."""
     if result is None:
         return ""
 
-    # Use the new marimo-style display system
-    from .display import display_as_html
+    renderable = to_renderable(result)
 
-    return display_as_html(result)
+    if isinstance(renderable, HTML):
+        return renderable.content
+    if isinstance(renderable, Markdown):
+        return format_markdown(renderable.content)
+    if isinstance(renderable, Text):
+        return f'<pre class="result-output">{escape_html(renderable.content)}</pre>'
+    if isinstance(renderable, PNG):
+        png_b64 = base64.b64encode(renderable.content).decode()
+        return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
+    if isinstance(renderable, JPEG):
+        jpeg_b64 = base64.b64encode(renderable.content).decode()
+        return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
+    if isinstance(renderable, SVG):
+        return f'<div class="svg-output">{renderable.content}</div>'
+    if isinstance(renderable, Latex):
+        return f'<div class="math-block">\\[{renderable.content}\\]</div>'
+    if isinstance(renderable, JSON):
+        json_str = json.dumps(renderable.content, indent=2)
+        return f'<pre class="json-output">{escape_html(json_str)}</pre>'
+
+    return f'<pre class="result-output">{escape_html(str(renderable))}</pre>'
 
 
 def render_cell(cell: Cell) -> str:
@@ -139,7 +159,6 @@ def render_cell(cell: Cell) -> str:
 
         # Add code input
         html_parts.append('<div class="cell-input">')
-        # html_parts.append('<div class="input-label">In:</div>')
         html_parts.append(
             f'<div class="code-content">{format_code(cell.content)}</div>'
         )
@@ -173,7 +192,6 @@ def render_cell(cell: Cell) -> str:
         # Add result output if present
         if cell.result is not None:
             html_parts.append('<div class="cell-output">')
-            # html_parts.append('<div class="output-label">Out:</div>')
             html_parts.append(
                 f'<div class="output-content">{format_result(cell.result)}</div>'
             )

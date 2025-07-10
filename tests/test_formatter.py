@@ -167,15 +167,20 @@ class TestFormatMarkdown:
 class TestFormatResult:
     """Test result formatting using display system."""
 
-    @patch("src.plaque.display.display_as_html")
-    def test_result_formatting(self, mock_display):
-        """Test that format_result uses display system."""
-        mock_display.return_value = '<div class="custom">Custom Result</div>'
+    @patch("src.plaque.formatter.to_renderable")
+    def test_result_formatting(self, mock_to_renderable):
+        """Test that format_result uses the display system to get a renderable."""
+        from src.plaque.renderables import HTML
+
+        # Mock the renderable object returned by the display system
+        mock_to_renderable.return_value = HTML(
+            '<div class="custom">Custom Result</div>'
+        )
 
         result_obj = "test result"
         formatted = format_result(result_obj)
 
-        mock_display.assert_called_once_with(result_obj)
+        mock_to_renderable.assert_called_once_with(result_obj)
         assert formatted == '<div class="custom">Custom Result</div>'
 
     def test_none_result(self):
