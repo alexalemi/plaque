@@ -7,7 +7,7 @@ handle cell boundaries and extract cell content. It supports both traditional
 
 import ast
 import re
-from typing import TextIO, Generator, List, Tuple, Optional, Dict, Any
+from typing import TextIO, Generator, List, Tuple, Dict
 from .cell import Cell, CellType
 
 
@@ -20,7 +20,7 @@ class CellBoundary:
         boundary_type: str,
         title: str = "",
         cell_type: CellType = CellType.CODE,
-        metadata: Dict[str, str] = None,
+        metadata: Dict[str, str] | None = None,
     ):
         self.line_no = line_no
         self.boundary_type = boundary_type  # 'marker' or 'string'
@@ -285,3 +285,10 @@ def parse_ast(input: TextIO) -> Generator[Cell, None, None]:
     """Parse input using AST-based parser."""
     parser = ASTParser()
     yield from parser.parse(input)
+
+if __name__ == "__main__":
+    import sys
+
+    with open(sys.argv[1]) as f:
+        for i, cell in enumerate(parse_ast(f)):
+            print(i, cell)
