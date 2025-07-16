@@ -308,6 +308,7 @@ class TestProcessorState:
     def test_processor_uses_single_environment(self, mock_env_class):
         """Test that processor uses a single environment instance."""
         mock_env = Mock()
+        mock_env.counter = 0  # Set up counter attribute for the mock
         mock_env_class.return_value = mock_env
 
         processor = Processor()

@@ -286,6 +286,7 @@ def parse_ast(input: TextIO) -> Generator[Cell, None, None]:
     parser = ASTParser()
     yield from parser.parse(input)
 
+
 if __name__ == "__main__":
     import sys
 
