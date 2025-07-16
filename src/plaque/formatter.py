@@ -75,15 +75,6 @@ def format_markdown(content: str) -> str:
 
         html = md.convert(content)
 
-        # Add LaTeX equation support (basic support)
-        html = re.sub(
-            r"\$\$(.*?)\$\$",
-            r'<div class="math-block">\\[\1\\]</div>',
-            html,
-            flags=re.DOTALL,
-        )
-        html = re.sub(r"\$([^$]+)", r'<span class="math-inline">\\(\1\\)</span>', html)
-
         return html
 
     except ImportError:
@@ -101,15 +92,6 @@ def format_markdown(content: str) -> str:
 
         # Code blocks
         text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
-
-        # LaTeX equations
-        text = re.sub(
-            r"\$\$(.*?)\$\$",
-            r'<div class="math-block">\\[\1\\]</div>',
-            text,
-            flags=re.DOTALL,
-        )
-        text = re.sub(r"\$([^$]+)", r'<span class="math-inline">\\(\1\\)</span>', text)
 
         # Convert line breaks to paragraphs
         paragraphs = text.split("\n\n")

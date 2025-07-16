@@ -110,23 +110,13 @@ When using multiline comments as cells:
 
 You can install Plaque using either pip or uv:
 
-### Install directly from GitHub
-
-```bash
-# Using pip
-pip install git+https://github.com/alexalemi/plaque.git
-
-# Using uv (recommended)
-uv pip install git+https://github.com/alexalemi/plaque.git
-```
-
-### Install from PyPI (coming soon)
+### Install from PyPI
 
 ```bash
 # Using pip
 pip install plaque
 
-# Using uv
+# Using uv (recommended)
 uv pip install plaque
 ```
 

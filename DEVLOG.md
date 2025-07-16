@@ -6,9 +6,14 @@
  - [ ] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
- - [ ] Package Setup.
+ - [X] Package Setup.
  - [ ] Enhanced pandas and plotting support (from marimo?)
  - [ ] Add other mime types (pdf, video)
+
+
+## 2025-07-15
+
+Published on PyPI. `uv publish`. Also tried to fix the double formatting of the LaTeX.
 
 ## 2025-07-08
 
