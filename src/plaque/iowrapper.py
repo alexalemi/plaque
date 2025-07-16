@@ -21,6 +21,16 @@ class NotebookStdout:
 
     def write(self, message):
         self.buffer.write(message)
+        # Mirror to original stream for command line visibility
+        if self._original:
+            self._original.write(message)
+            self._original.flush()  # Ensure immediate output
 
     def seek(self, offset, whence=io.SEEK_SET):
         self.buffer.seek(offset, whence)
+
+    def flush(self):
+        # Flush both buffer and original stream
+        self.buffer.flush()
+        if self._original and hasattr(self._original, "flush"):
+            self._original.flush()
