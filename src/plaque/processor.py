@@ -27,9 +27,7 @@ class Processor:
                     output.append(cell)
                 else:
                     # Copy over the previous result
-                    cell.result = previous_code_cell.result
-                    cell.error = previous_code_cell.error
-                    cell.counter = previous_code_cell.counter
+                    cell.copy_execution(previous_code_cell)
                     output.append(cell)
             else:
                 output.append(cell)
