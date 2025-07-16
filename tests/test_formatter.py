@@ -115,7 +115,7 @@ class TestFormatMarkdown:
 
     @patch("markdown.Markdown")
     def test_latex_equation_support(self, mock_markdown_class):
-        """Test LaTeX equation rendering."""
+        """Test that LaTeX equations are passed through unchanged for MathJax."""
         mock_md = Mock()
         mock_markdown_class.return_value = mock_md
         mock_md.convert.return_value = (
@@ -125,13 +125,9 @@ class TestFormatMarkdown:
         content = "Einstein discovered that $E = mc^2$ and $$F = ma$$"
         result = format_markdown(content)
 
-        # Should convert inline math
-        assert "\\(E = mc^2\\)" in result
-        assert "math-inline" in result
-
-        # Should convert display math
-        assert "\\[F = ma\\]" in result
-        assert "math-block" in result
+        # LaTeX should be passed through unchanged for MathJax to handle
+        assert "$E = mc^2$" in result
+        assert "$$F = ma$$" in result
 
     @patch.dict("sys.modules", {"markdown": None})
     def test_markdown_fallback(self):

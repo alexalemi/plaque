@@ -159,11 +159,14 @@ def serve(input, port, bind, open_browser):
     """
     input_path = Path(input).resolve()
 
+    # Create a single processor instance to maintain state
+    processor = Processor()
+
     # Create callback that accepts image_dir parameter
     def callback_with_image_dir(
         notebook_path: str, image_dir: Optional[Path] = None
     ) -> str:
-        return process_notebook(notebook_path, Processor(), image_dir)
+        return process_notebook(notebook_path, processor, image_dir)
 
     try:
         start_notebook_server(
