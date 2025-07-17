@@ -34,6 +34,8 @@ Tried to update tests to add these cases.
 
 Fixed the `render` and `watch` commands to be able to take a directory.
 
+Decided to merge the ast branch to main and bump the minor version.
+
 ## 2025-07-15
 
 Published on PyPI. `uv publish`. Also tried to fix the double formatting of the LaTeX.
