@@ -327,3 +327,179 @@ x = my_function()
         # Fourth cell: final code
         assert cells[3].type == CellType.CODE
         assert "x = my_function()" in cells[3].content
+
+    def test_raw_string_single_line(self):
+        """Test parsing single-line raw strings."""
+        content = r'''r"""This is a raw string with \n and \t"""
+x = 1
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 2
+        assert cells[0].type == CellType.MARKDOWN
+        assert cells[0].content == r"This is a raw string with \n and \t"
+        assert cells[0].metadata.get("string_prefix") == "r"
+        assert cells[1].type == CellType.CODE
+        assert cells[1].content == "x = 1"
+
+    def test_raw_string_multiline(self):
+        """Test parsing multi-line raw strings."""
+        content = r'''r"""
+This is a raw string
+with \n newlines \t tabs
+and \\ backslashes
+"""
+print("code")
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 2
+        assert cells[0].type == CellType.MARKDOWN
+        assert r"\n newlines \t tabs" in cells[0].content
+        assert r"\\ backslashes" in cells[0].content
+        assert cells[0].metadata.get("string_prefix") == "r"
+
+    def test_fstring_basic(self):
+        """Test parsing f-strings."""
+        content = '''name = "World"
+f"""Hello {name}!"""
+print("done")
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 3
+        assert cells[0].type == CellType.CODE
+        assert cells[0].content == 'name = "World"'
+        assert cells[1].type == CellType.MARKDOWN
+        # F-strings preserve the full literal for execution
+        assert cells[1].content.startswith('f"""')
+        assert cells[1].metadata.get("string_prefix") == "f"
+        assert cells[2].type == CellType.CODE
+
+    def test_fstring_complex(self):
+        """Test f-strings with complex expressions."""
+        content = '''x = 5
+y = 10
+f"""
+# Math Results
+The sum is {x + y}
+The product is {x * y}
+List comprehension: {[i**2 for i in range(3)]}
+"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 2
+        assert cells[1].type == CellType.MARKDOWN
+        assert cells[1].content.startswith('f"""')
+        assert "{x + y}" in cells[1].content
+        assert cells[1].metadata.get("string_prefix") == "f"
+
+    def test_combined_prefixes(self):
+        """Test combined string prefixes."""
+        # Raw f-string
+        content = r'''fr"""Path: C:\Users\{username}"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 1
+        assert cells[0].type == CellType.MARKDOWN
+        assert cells[0].content.startswith('fr"""')
+        assert cells[0].metadata.get("string_prefix") == "fr"
+
+    def test_byte_strings(self):
+        """Test byte strings."""
+        content = '''b"""This is a byte string"""
+br"""Raw byte string with \\n"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 2
+        assert cells[0].type == CellType.MARKDOWN
+        assert cells[0].metadata.get("string_prefix") == "b"
+        assert cells[1].type == CellType.MARKDOWN
+        assert cells[1].metadata.get("string_prefix") == "br"
+
+    def test_string_prefix_case_insensitive(self):
+        """Test that string prefixes are case-insensitive."""
+        content = '''R"""Uppercase R"""
+F"""Uppercase F {1+1}"""
+FR"""Combined uppercase"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 3
+        # Prefixes should be normalized to lowercase
+        assert cells[0].metadata.get("string_prefix") == "r"
+        assert cells[1].metadata.get("string_prefix") == "f"
+        assert cells[2].metadata.get("string_prefix") == "fr"
+
+    def test_is_code_property_for_fstrings(self):
+        """Test that f-string markdown cells have is_code=True."""
+        content = '''f"""F-string {1+1}"""
+r"""Raw string"""
+"""Regular string"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 3
+
+        # F-string should be treated as code for execution
+        assert cells[0].type == CellType.MARKDOWN
+        assert cells[0].is_code is True
+
+        # Raw string should not be code
+        assert cells[1].type == CellType.MARKDOWN
+        assert cells[1].is_code is False
+
+        # Regular string should not be code
+        assert cells[2].type == CellType.MARKDOWN
+        assert cells[2].is_code is False
+
+    def test_string_content_extraction(self):
+        """Test content extraction for different string types."""
+        content = '''f"""# Title
+Content {expr}"""
+r"""Raw content with \n"""
+"""Regular content"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+
+        # F-strings should preserve the full literal
+        assert cells[0].content.startswith('f"""')
+        assert cells[0].content.endswith('"""')
+
+        # Other strings should extract just the content
+        assert "Raw content with" in cells[1].content
+        assert cells[2].content == "Regular content"
+
+    def test_string_with_quotes(self):
+        """Test strings containing quotes."""
+        content = r'''r"""String with "quotes" and 'apostrophes'"""
+f"""Formatted with "quotes" and {variable}"""
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 2
+        assert '"quotes"' in cells[0].content
+        assert "'apostrophes'" in cells[0].content
+        assert cells[1].content.startswith('f"""')
+
+    def test_get_string_info_method(self):
+        """Test the _get_string_info static method."""
+        parser = ASTParser()
+
+        # Regular triple quotes
+        info = parser._get_string_info('"""content"""')
+        assert info == ("", '"""', 3)
+
+        # Raw string
+        info = parser._get_string_info('r"""content"""')
+        assert info == ("r", '"""', 4)
+
+        # F-string
+        info = parser._get_string_info('f"""content"""')
+        assert info == ("f", '"""', 4)
+
+        # Combined prefix
+        info = parser._get_string_info('fr"""content"""')
+        assert info == ("fr", '"""', 5)
+
+        # Single quotes
+        info = parser._get_string_info("r'''content'''")
+        assert info == ("r", "'''", 4)
+
+        # Not a string
+        info = parser._get_string_info("x = 1")
+        assert info is None
