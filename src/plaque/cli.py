@@ -1,4 +1,3 @@
-from .parser import parse
 from .ast_parser import parse_ast
 from .formatter import format
 from .server import start_notebook_server
@@ -20,15 +19,11 @@ def process_notebook(
     input_path: str | Path,
     processor: Processor,
     image_dir: Optional[Path] = None,
-    use_ast_parser: bool = False,
 ) -> str:
     logger.info(f"Processing {input_path}")
 
     with open(input_path, "r") as f:
-        if use_ast_parser:
-            cells = list(parse_ast(f))
-        else:
-            cells = list(parse(f))
+        cells = list(parse_ast(f))
 
     cells = processor.process_cells(cells)
     return format(cells, image_dir)
@@ -37,16 +32,16 @@ def process_notebook(
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option(
-    "--use-ast-parser", is_flag=True, help="Use AST-based parser (experimental)"
-)
-@click.option(
-    "--use-dependency-tracking",
+    "--no-dependency-tracking",
     is_flag=True,
-    help="Use dependency tracking for smart execution",
+    help="Disable dependency tracking and run all cells after any change",
 )
 @click.pass_context
-def main(ctx, verbose, use_ast_parser, use_dependency_tracking):
-    """Plaque - A local-first notebook system for Python."""
+def main(ctx, verbose, no_dependency_tracking):
+    """Plaque - A local-first notebook system for Python.
+
+    By default, uses AST-based parsing and dependency tracking for smart execution.
+    """
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -54,8 +49,9 @@ def main(ctx, verbose, use_ast_parser, use_dependency_tracking):
 
     # Store options in context for subcommands
     ctx.ensure_object(dict)
-    ctx.obj["use_ast_parser"] = use_ast_parser
-    ctx.obj["use_dependency_tracking"] = use_dependency_tracking
+    ctx.obj[
+        "use_dependency_tracking"
+    ] = not no_dependency_tracking  # Dependency tracking is default, flag disables it
 
 
 @main.command()
@@ -84,13 +80,12 @@ def render(ctx, input, output, open_browser):
 
     try:
         # Get options from context
-        use_ast_parser = ctx.obj.get("use_ast_parser", False)
-        use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+        use_dependency_tracking = ctx.obj.get(
+            "use_dependency_tracking", True
+        )  # Default to True (dependency tracking)
 
         processor = Processor(use_dependency_tracking=use_dependency_tracking)
-        html_content = process_notebook(
-            input_path, processor, use_ast_parser=use_ast_parser
-        )
+        html_content = process_notebook(input_path, processor)
 
         with open(output_path, "w") as f:
             f.write(html_content)
@@ -134,17 +129,16 @@ def watch(ctx, input, output, open_browser):
         output_path = Path(output)
 
     # Get options from context
-    use_ast_parser = ctx.obj.get("use_ast_parser", False)
-    use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+    use_dependency_tracking = ctx.obj.get(
+        "use_dependency_tracking", True
+    )  # Default to True (dependency tracking)
 
     processor = Processor(use_dependency_tracking=use_dependency_tracking)
 
     def regenerate_html(file_path):
         """Regenerate HTML when file changes."""
         try:
-            html_content = process_notebook(
-                input_path, processor, use_ast_parser=use_ast_parser
-            )
+            html_content = process_notebook(input_path, processor)
             with open(output_path, "w") as f:
                 f.write(html_content)
             click.echo(f"Regenerated: {output_path}")
@@ -196,19 +190,19 @@ def serve(ctx, input, port, bind, open_browser):
     """
     input_path = Path(input).resolve()
 
-    # Create a single processor instance to maintain state
-    processor = Processor()
     # Get options from context
-    use_ast_parser = ctx.obj.get("use_ast_parser", False)
-    use_dependency_tracking = ctx.obj.get("use_dependency_tracking", False)
+    use_dependency_tracking = ctx.obj.get(
+        "use_dependency_tracking", True
+    )  # Default to True (dependency tracking)
+
+    # Create a single processor instance to maintain state
+    processor = Processor(use_dependency_tracking=use_dependency_tracking)
 
     # Create callback that accepts image_dir parameter
     def callback_with_image_dir(
         notebook_path: str, image_dir: Optional[Path] = None
     ) -> str:
-        return process_notebook(
-            notebook_path, processor, image_dir, use_ast_parser=use_ast_parser
-        )
+        return process_notebook(notebook_path, processor, image_dir)
 
     try:
         start_notebook_server(
