@@ -36,6 +36,27 @@ class ASTParser:
         self.source_lines: List[str] = []
         self.cell_boundaries: List[CellBoundary] = []
 
+    @staticmethod
+    def _get_string_info(line: str) -> Tuple[str, str, int] | None:
+        """Extract string prefix, delimiter, and content start position.
+
+        Returns (prefix, delimiter, content_start) or None if not a string literal.
+        Handles prefixes like r, b, u, f, rb, br, fr, etc.
+        """
+        stripped = line.strip()
+
+        # Check for various string prefixes (case-insensitive)
+        # Extended pattern to handle all valid Python string prefixes
+        prefix_pattern = re.match(r'^([rbufRBUF]{0,3})("""|\'\'\')(.*)$', stripped)
+        if prefix_pattern:
+            prefix = prefix_pattern.group(1).lower()
+            delimiter = prefix_pattern.group(2)
+            rest = prefix_pattern.group(3)
+            content_start = len(prefix) + len(delimiter)
+            return (prefix, delimiter, content_start)
+
+        return None
+
     def parse_cell_boundary(self, line: str) -> Tuple[str, CellType, Dict[str, str]]:
         """Parse a cell boundary line to extract title, type, and metadata.
 
@@ -121,15 +142,35 @@ class ASTParser:
             tree = ast.parse(source)
             # Only look at module-level statements, not nested nodes
             for node in tree.body:
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
-                    # Check if it's a string constant at module level
-                    if isinstance(node.value.value, str) and hasattr(node, "lineno"):
+                if isinstance(node, ast.Expr) and hasattr(node, "lineno"):
+                    # Check for different types of string literals
+                    is_string_literal = False
+
+                    if isinstance(node.value, ast.Constant):
+                        # Regular strings, raw strings, and byte strings
+                        if isinstance(node.value.value, (str, bytes)):
+                            is_string_literal = True
+                    elif isinstance(node.value, ast.JoinedStr):
+                        # F-strings
+                        is_string_literal = True
+
+                    if is_string_literal:
                         # This is a top-level string - treat as markdown cell
+                        # Extract the string prefix to store in metadata
+                        line = lines[node.lineno - 1]
+                        string_info = self._get_string_info(line)
+                        metadata = {}
+                        if string_info:
+                            prefix, _, _ = string_info
+                            if prefix:
+                                metadata["string_prefix"] = prefix
+
                         boundaries.append(
                             CellBoundary(
                                 line_no=node.lineno,
                                 boundary_type="string",
                                 cell_type=CellType.MARKDOWN,
+                                metadata=metadata,
                             )
                         )
         except SyntaxError:
@@ -148,47 +189,46 @@ class ASTParser:
             # For marker boundaries, skip the boundary line itself
             content_lines = self.source_lines[start_line:end_line]
         elif boundary_type == "string":
-            # For string boundaries, we need to extract the string content
-            # Find the string literal and extract its content
-            content_lines = []
-            in_string = False
-            string_delimiter = None
+            # For string boundaries, we need to check if it's an f-string
+            first_line = self.source_lines[start_line - 1]
+            string_info = self._get_string_info(first_line)
 
-            for i in range(start_line - 1, min(end_line, len(self.source_lines))):
-                line = self.source_lines[i]
+            if string_info and string_info[0].startswith("f"):
+                # F-string: preserve the entire literal for execution
+                content_lines = self.source_lines[start_line - 1 : end_line]
+            else:
+                # Regular string: extract just the content
+                content_lines = []
+                in_string = False
+                string_delimiter = None
 
-                if not in_string:
-                    # Look for start of string
-                    if line.strip().startswith('"""'):
-                        in_string = True
-                        string_delimiter = '"""'
-                        # Extract content after opening delimiter
-                        content = line.strip()[3:]
-                        if content.endswith('"""') and len(content) > 3:
-                            # Single line string
-                            content_lines.append(content[:-3])
-                            break
-                        elif content:
-                            content_lines.append(content)
-                    elif line.strip().startswith("'''"):
-                        in_string = True
-                        string_delimiter = "'''"
-                        # Extract content after opening delimiter
-                        content = line.strip()[3:]
-                        if content.endswith("'''") and len(content) > 3:
-                            # Single line string
-                            content_lines.append(content[:-3])
-                            break
-                        elif content:
-                            content_lines.append(content)
-                else:
-                    # We're inside a string
-                    if line.rstrip().endswith(string_delimiter):
-                        # End of string
-                        content_lines.append(line.rstrip()[:-3])
-                        break
+                for i in range(start_line - 1, min(end_line, len(self.source_lines))):
+                    line = self.source_lines[i]
+
+                    if not in_string:
+                        # Look for start of string
+                        string_info = self._get_string_info(line)
+                        if string_info:
+                            prefix, string_delimiter, content_start = string_info
+                            in_string = True
+                            # Extract content after opening delimiter
+                            content = line.strip()[content_start:]
+                            if content.endswith(string_delimiter) and len(
+                                content
+                            ) > len(string_delimiter):
+                                # Single line string
+                                content_lines.append(content[: -len(string_delimiter)])
+                                break
+                            elif content:
+                                content_lines.append(content)
                     else:
-                        content_lines.append(line)
+                        # We're inside a string
+                        if line.rstrip().endswith(string_delimiter):
+                            # End of string
+                            content_lines.append(line.rstrip()[:-3])
+                            break
+                        else:
+                            content_lines.append(line)
         else:
             # Regular code content
             content_lines = self.source_lines[start_line:end_line]
@@ -199,19 +239,20 @@ class ASTParser:
         """Find the end line of a string that starts at start_line."""
         line = self.source_lines[start_line - 1]
 
+        # Get string info (handles all prefixes)
+        string_info = self._get_string_info(line)
+        if not string_info:
+            # Fallback for edge cases
+            return start_line
+
+        prefix, delimiter, content_start = string_info
+
         # Check if it's a single-line string
-        if line.strip().startswith('"""'):
-            content = line.strip()[3:]
-            if content.endswith('"""') and len(content) > 3:
-                return start_line
-        elif line.strip().startswith("'''"):
-            content = line.strip()[3:]
-            if content.endswith("'''") and len(content) > 3:
-                return start_line
+        content = line.strip()[content_start:]
+        if content.endswith(delimiter) and len(content) > len(delimiter):
+            return start_line
 
         # Multi-line string, find the closing delimiter
-        delimiter = '"""' if line.strip().startswith('"""') else "'''"
-
         for i in range(start_line, len(self.source_lines)):
             if self.source_lines[i].rstrip().endswith(delimiter):
                 return i + 1

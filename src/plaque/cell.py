@@ -30,7 +30,15 @@ class Cell:
 
     @property
     def is_code(self) -> bool:
-        return self.type == CellType.CODE
+        # Regular code cells
+        if self.type == CellType.CODE:
+            return True
+        # F-string markdown cells should be executed like code
+        if self.type == CellType.MARKDOWN and self.metadata.get(
+            "string_prefix", ""
+        ).startswith("f"):
+            return True
+        return False
 
     @property
     def is_markdown(self) -> bool:

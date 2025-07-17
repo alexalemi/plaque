@@ -223,10 +223,41 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
                 f'<h3 class="markdown-title">{escape_html(cell.metadata["title"])}</h3>'
             )
 
-        # Add markdown content directly without cell wrapper
-        html_parts.append(
-            f'<div class="markdown-content" id="{cell_id}">{format_markdown(cell.content)}</div>'
-        )
+        # Check if this is an f-string markdown cell
+        if cell.metadata.get("string_prefix", "").startswith("f"):
+            # Handle f-string markdown cells
+            if cell.error:
+                # Show error for f-strings that failed to execute
+                html_parts.append(f'<div class="cell code-cell" id="{cell_id}">')
+                html_parts.append(f'<div class="cell-counter">{cell.counter}</div>')
+                html_parts.append('<div class="cell-error">')
+                html_parts.append('<div class="error-label">ERROR</div>')
+                html_parts.append(
+                    f'<pre class="error-content">{escape_html(cell.error)}</pre>'
+                )
+                html_parts.append("</div>")
+                html_parts.append("</div>")
+            elif cell.result is not None:
+                # Use the evaluated result as the markdown content
+                content = str(cell.result)
+                # Add execution counter for f-strings
+                html_parts.append(
+                    f'<div class="cell-counter" style="float: right; color: #888; font-family: monospace; font-size: 12px; padding: 0.5em;">{cell.counter}</div>'
+                )
+                html_parts.append(
+                    f'<div class="markdown-content" id="{cell_id}">{format_markdown(content)}</div>'
+                )
+            else:
+                # Fallback: show the original content
+                html_parts.append(
+                    f'<div class="markdown-content" id="{cell_id}">{format_markdown(cell.content)}</div>'
+                )
+        else:
+            # Regular markdown cell
+            html_parts.append(
+                f'<div class="markdown-content" id="{cell_id}">{format_markdown(cell.content)}</div>'
+            )
+
         return "\n".join(html_parts)
 
     return ""
