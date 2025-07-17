@@ -4,9 +4,10 @@
 
  - [X] Serve images as files, consider separate json for use with `claude`.
  - [X] Revisit parser, consider using `ast` (and implement dependency tracking)
+ - [X] Package Setup.
+ - [ ] Add a rest style server API for better agentic support.
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
- - [X] Package Setup.
  - [ ] Enhanced pandas and plotting support (from marimo?)
  - [ ] Add other mime types (pdf, video)
 
@@ -25,6 +26,13 @@ probably just serve json of the Cell objects on some path like /cells/ or
 something, not sure the right format there, and not sure if we can return
 proper python objects or maybe pickle serializations of them, but that seems a
 bit dangerous. 
+
+Added support for top level f, b, u and r strings.  F strings are like code
+cells but look like markdown, but otherwise satisfy the depedency tracking.
+
+Tried to update tests to add these cases.
+
+Fixed the `render` and `watch` commands to be able to take a directory.
 
 ## 2025-07-15
 

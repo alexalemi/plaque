@@ -77,6 +77,9 @@ def render(ctx, input, output, open_browser):
         output_path = input_path.with_suffix(".html")
     else:
         output_path = Path(output)
+        # If output is a directory, create the HTML file with the input filename
+        if output_path.is_dir():
+            output_path = output_path / input_path.with_suffix(".html").name
 
     try:
         # Get options from context
@@ -127,6 +130,9 @@ def watch(ctx, input, output, open_browser):
         output_path = input_path.with_suffix(".html")
     else:
         output_path = Path(output)
+        # If output is a directory, create the HTML file with the input filename
+        if output_path.is_dir():
+            output_path = output_path / input_path.with_suffix(".html").name
 
     # Get options from context
     use_dependency_tracking = ctx.obj.get(
