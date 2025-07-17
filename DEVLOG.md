@@ -11,6 +11,21 @@
  - [ ] Add other mime types (pdf, video)
 
 
+## 2025-07-16
+
+Created an ast based parser that should be more robust and dependency tracking
+which is enabled by default. Initially this was breaking on doc strings for
+functions but now should just be top level. For some reason the execution
+counts don't seem to start at zero, not sure what the deal is there.
+
+Next enhancement to add would probably be to add some kind of api, which would
+let an agent like claude query or get the results of individual cells, that way
+they could see what is happening in a more fine grained way.  The api should
+probably just serve json of the Cell objects on some path like /cells/ or
+something, not sure the right format there, and not sure if we can return
+proper python objects or maybe pickle serializations of them, but that seems a
+bit dangerous. 
+
 ## 2025-07-15
 
 Published on PyPI. `uv publish`. Also tried to fix the double formatting of the LaTeX.
