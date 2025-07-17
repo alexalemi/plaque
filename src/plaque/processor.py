@@ -68,8 +68,8 @@ class Processor:
         # Find all cells that need to be rerun
         cells_to_rerun = find_cells_to_rerun(cells, changed_cell_indices)
 
-        logger.info(f"Changed cells: {[i+1 for i in changed_cell_indices]}")
-        logger.info(f"Cells to rerun: {[i+1 for i in cells_to_rerun]}")
+        logger.info(f"Changed cells: {[i + 1 for i in changed_cell_indices]}")
+        logger.info(f"Cells to rerun: {[i + 1 for i in cells_to_rerun]}")
 
         # Copy over results from unchanged cells
         for i, cell in enumerate(cells):
@@ -83,7 +83,7 @@ class Processor:
 
         for i in cells_to_rerun_sorted:
             if i < len(cells) and cells[i].is_code:
-                logger.info(f"Executing cell {i+1}")
+                logger.info(f"Executing cell {i + 1}")
                 self.environment.execute_cell(cells[i])
 
         # Update counters only for newly executed cells

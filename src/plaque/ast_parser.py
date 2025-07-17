@@ -119,7 +119,8 @@ class ASTParser:
         # Find top-level triple-quoted strings using AST
         try:
             tree = ast.parse(source)
-            for node in ast.walk(tree):
+            # Only look at module-level statements, not nested nodes
+            for node in tree.body:
                 if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
                     # Check if it's a string constant at module level
                     if isinstance(node.value.value, str) and hasattr(node, "lineno"):

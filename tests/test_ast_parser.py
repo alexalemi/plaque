@@ -285,3 +285,45 @@ y = 2
         assert len(cells) == 2
         assert cells[0].lineno == 1
         assert cells[1].lineno == 4
+
+    def test_function_docstrings_not_cells(self):
+        """Test that function and class docstrings are not treated as cell boundaries."""
+        content = '''"""Module docstring - should be a cell"""
+
+def my_function():
+    """Function docstring - should NOT be a cell"""
+    return 42
+
+class MyClass:
+    """Class docstring - should NOT be a cell"""
+    
+    def method(self):
+        """Method docstring - should NOT be a cell"""
+        pass
+
+"""Another top-level string - should be a cell"""
+
+x = my_function()
+'''
+        cells = list(parse_ast(io.StringIO(content)))
+        assert len(cells) == 4
+
+        # First cell: module docstring
+        assert cells[0].type == CellType.MARKDOWN
+        assert "Module docstring" in cells[0].content
+
+        # Second cell: all the code with functions and classes
+        assert cells[1].type == CellType.CODE
+        assert "def my_function():" in cells[1].content
+        assert "Function docstring" in cells[1].content
+        assert "class MyClass:" in cells[1].content
+        assert "Class docstring" in cells[1].content
+        assert "Method docstring" in cells[1].content
+
+        # Third cell: another top-level string
+        assert cells[2].type == CellType.MARKDOWN
+        assert "Another top-level string" in cells[2].content
+
+        # Fourth cell: final code
+        assert cells[3].type == CellType.CODE
+        assert "x = my_function()" in cells[3].content
