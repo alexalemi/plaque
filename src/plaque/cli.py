@@ -217,6 +217,7 @@ def serve(ctx, input, port, bind, open_browser):
             bind=bind,
             regenerate_callback=callback_with_image_dir,
             open_browser=open_browser,
+            processor=processor,
         )
     except ImportError as e:
         click.echo(f"Server dependencies not available: {e}", err=True)
