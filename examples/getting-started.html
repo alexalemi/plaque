@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaque Notebook</title>
+    <style>
+        body {
+            font-family: 'PT Serif', 'Georgia', 'Times New Roman', serif;
+            line-height: 1.7;
+            color: #2d3748;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #ffffff;
+            font-size: 16px;
+        }
+        
+        .cell {
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            margin: 32px 0;
+            overflow: hidden;
+        }
+
+				.cell-counter {
+						float: right;
+						color: #555;
+						padding: 1em;
+						font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+						font-size: 12px;
+				}
+        
+        .cell-title {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .code-cell {
+            border-left: 3px solid #4a90e2;
+        }
+        
+        .cell-input, .cell-output, .cell-error {
+            padding: 16px;
+        }
+        
+        .cell-input {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .input-label, .output-label, .error-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .code-content {
+            margin: 0;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .code-content .highlight {
+            margin: 0;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        
+        .code-content pre {
+            margin: 0;
+            padding: 12px;
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 4px;
+        }
+        
+        .cell-error {
+            background: #fff5f5;
+            border-top: 1px solid #fed7d7;
+        }
+        
+        .error-label {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+        
+        .error-content {
+            margin: 0;
+            padding: 16px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #991b1b;
+        }
+        
+        .error-content .error-type {
+            font-weight: 600;
+            color: #dc2626;
+        }
+        
+        .error-content .error-context {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #fecaca;
+        }
+        
+        .error-content .error-line {
+            background: #fee2e2;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .error-content .error-pointer {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .cell-output {
+            background: white;
+        }
+        
+        .output-content {
+            margin: 0;
+        }
+        
+        .result-output {
+            margin: 0;
+            padding: 12px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .markdown-content {
+            margin: 40px 0;
+            padding: 0;
+        }
+        
+        .markdown-title {
+            font-family: 'Fira Sans Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-weight: 600;
+            font-size: 1.3em;
+            color: #2d3748;
+            margin: 48px 0 24px 0;
+        }
+        
+        .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            font-family: 'Fira Sans Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-weight: 600;
+            margin-top: 48px;
+            margin-bottom: 24px;
+            line-height: 1.3;
+        }
+        
+        .markdown-content h1 { font-size: 2.5em; color: #1a202c; }
+        .markdown-content h2 { font-size: 2em; color: #2d3748; }
+        .markdown-content h3 { font-size: 1.5em; color: #4a5568; }
+        .markdown-content h4 { font-size: 1.25em; color: #4a5568; }
+        .markdown-content h5 { font-size: 1.1em; color: #4a5568; }
+        .markdown-content h6 { font-size: 1em; color: #4a5568; font-weight: 700; }
+        
+        .markdown-content p {
+            margin-bottom: 24px;
+            color: #2d3748;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 24px;
+            padding-left: 32px;
+        }
+        
+        .markdown-content li {
+            margin-bottom: 8px;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #e2e8f0;
+            padding-left: 24px;
+            margin: 24px 0;
+            color: #4a5568;
+            font-style: italic;
+        }
+        
+        .markdown-content code {
+            background: #f1f5f9;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 0.85em;
+            color: #4a5568;
+        }
+        
+        .math-block {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        
+        .math-inline {
+            font-size: 1.1em;
+        }
+        
+        .matplotlib-figure {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            color: #6c757d;
+        }
+        
+        /* Pandas DataFrame styling - for _repr_html_ output */
+        .dataframe {
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 14px;
+            min-width: 0;
+            width: 100%;
+        }
+        
+        .dataframe thead tr:only-child th {
+            text-align: right;
+        }
+        
+        .dataframe thead th {
+            text-align: left;
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe tbody tr th {
+            vertical-align: top;
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .dataframe tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+        
+        .dataframe td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dataframe th {
+            font-weight: 600;
+        }
+        
+        /* Container for dataframe with horizontal scroll */
+        .output-content .dataframe {
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
+        }
+        
+        /* Legacy pandas-dataframe class support */
+        .pandas-dataframe {
+            overflow-x: auto;
+        }
+        
+        .pandas-dataframe table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        .pandas-dataframe th, .pandas-dataframe td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .pandas-dataframe th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        /* stdout and stderr styling */
+        .cell-stdout, .cell-stderr {
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .stdout-content {
+            margin: 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #2d3748;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .stderr-content {
+            margin: 0;
+            padding: 12px;
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #c53030;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Fira+Sans+Condensed:wght@400;600;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="notebook">
+        <div class="markdown-content" id="cell-1"><h1 id="getting-started-with-plaque">🌟 Getting Started with Plaque</h1>
+<p>Welcome to <strong>Plaque</strong> - the interactive Python notebook system that turns your regular Python files into beautiful, live-updating notebooks!</p>
+<p>This getting-started guide will teach you everything you need to know to become productive with Plaque in just a few minutes.</p>
+<h2 id="what-makes-plaque-special">What Makes Plaque Special?</h2>
+<p>✅ <strong>Local-first</strong> - Your files stay on your computer<br />
+✅ <strong>Real Python files</strong> - No special format, just <code>.py</code> files<br />
+✅ <strong>Live updates</strong> - See changes instantly as you edit<br />
+✅ <strong>Rich displays</strong> - Beautiful HTML, plots, and visualizations<br />
+✅ <strong>Your favorite editor</strong> - Use any text editor or IDE</p>
+<p>Let's dive in!</p></div>
+<div class="cell code-cell" id="cell-19">
+<div class="cell-counter">0</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #959077"># This is a traditional cell marker - one of three ways to create cells in Plaque</span>
+
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">&quot;Hello, Plaque! 🎉&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">Hello, Plaque! 🎉
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-24"><h2 id="three-ways-to-create-cells">📝 Three Ways to Create Cells</h2>
+<p>Plaque supports three different cell formats. Let's explore each one:</p>
+<h3 id="1-traditional-markers-like-above">1. Traditional Markers (like above)</h3>
+<p>Use <code># %%</code> to create code cells, just like in other notebook systems.</p></div>
+<div class="cell code-cell" id="cell-33">
+<div class="cell-counter">1</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #959077"># Another traditional cell</span>
+<span style="color: #F8F8F2">name</span> <span style="color: #FF4689">=</span> <span style="color: #E6DB74">&quot;Plaque User&quot;</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;Welcome, {</span><span style="color: #F8F8F2">name</span><span style="color: #E6DB74">}!&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">Welcome, Plaque User!
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-38"><h3 id="2-multiline-comment-cells-recommended">2. Multiline Comment Cells (Recommended)</h3>
+<p>This cell you're reading right now is a <strong>multiline comment cell</strong>. This is the recommended way to write markdown in Plaque because:</p>
+<ul>
+<li>More readable in your text editor</li>
+<li>Proper syntax highlighting</li>
+<li>Easy to write and edit</li>
+<li>Supports full Markdown and LaTeX: $E = mc^2$</li>
+</ul>
+<p>Just use triple quotes with your markdown content!</p></div>
+<div class="cell code-cell" id="cell-50">
+<div class="cell-counter">2</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #959077"># Let&#39;s create some variables to work with</span>
+<span style="color: #F8F8F2">user_name</span> <span style="color: #FF4689">=</span> <span style="color: #E6DB74">&quot;Alice&quot;</span>
+<span style="color: #F8F8F2">favorite_number</span> <span style="color: #FF4689">=</span> <span style="color: #AE81FF">42</span>
+<span style="color: #F8F8F2">hobbies</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">[</span><span style="color: #E6DB74">&quot;reading&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;coding&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;hiking&quot;</span><span style="color: #F8F8F2">]</span>
+
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;User: {</span><span style="color: #F8F8F2">user_name</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;Favorite number: {</span><span style="color: #F8F8F2">favorite_number</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;Hobbies: {&#39;, &#39;</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">join(hobbies)</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">User: Alice
+Favorite number: 42
+Hobbies: reading, coding, hiking
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-60"><h3 id="3-dynamic-f-string-cells">3. Dynamic F-String Cells</h3>
+<p>The third type uses f-strings for dynamic content that updates based on your variables:</p></div>
+<div class="cell-counter" style="float: right; color: #888; font-family: monospace; font-size: 12px; padding: 0.5em;">3</div>
+<div class="markdown-content" id="cell-66"><h3 id="user-profile">👋 User Profile</h3>
+<p><strong>Name:</strong> Alice<br />
+<strong>Lucky Number:</strong> 42<br />
+<strong>Hobbies:</strong> 3 activities  </p>
+<p>The user Alice has 3 hobbies and their favorite number is 42.</p></div>
+<div class="cell code-cell" id="cell-75">
+<div class="cell-counter">4</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #959077"># Create some sample data to use in our examples</span>
+<span style="color: #F8F8F2">student_grades</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">{</span><span style="color: #E6DB74">&quot;Alice&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #AE81FF">95</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Bob&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #AE81FF">87</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Charlie&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #AE81FF">92</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Diana&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #AE81FF">98</span><span style="color: #F8F8F2">}</span>
+</code></pre></div>
+</div>
+</div>
+<div class="markdown-content" id="cell-79"><h2 id="rich-display-features">🎨 Rich Display Features</h2>
+<p>One of Plaque's superpowers is rich display support. Let's explore different types of output:</p></div>
+<div class="cell code-cell" id="cell-84">
+<div class="cell-counter">5</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #959077"># The last expression in a cell is automatically displayed</span>
+<span style="color: #F8F8F2">student_grades</span>
+</code></pre></div>
+</div>
+<div class="cell-output">
+<div class="output-content"><pre class="result-output">{&#x27;Alice&#x27;: 95, &#x27;Bob&#x27;: 87, &#x27;Charlie&#x27;: 92, &#x27;Diana&#x27;: 98}</pre></div>
+</div>
+</div>
+<div class="markdown-content" id="cell-88"><h3 id="simple-data-visualization">📈 Simple Data Visualization</h3>
+<p>Stderr and stdout are captured and displayed in the notebook.</p></div>
+<div class="cell code-cell" id="cell-93">
+<div class="cell-counter">6</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #66D9EF">def</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">create_text_chart</span><span style="color: #F8F8F2">(data,</span> <span style="color: #F8F8F2">title</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;Chart&quot;</span><span style="color: #F8F8F2">):</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">&quot;&quot;&quot;Create a simple text-based bar chart&quot;&quot;&quot;</span>
+    <span style="color: #F8F8F2">max_value</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">max(data</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values())</span>
+    <span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;</span><span style="color: #AE81FF">\n</span><span style="color: #E6DB74">📊 {</span><span style="color: #F8F8F2">title</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+    <span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">&quot;=&quot;</span> <span style="color: #FF4689">*</span> <span style="color: #AE81FF">30</span><span style="color: #F8F8F2">)</span>
+    <span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">name,</span> <span style="color: #F8F8F2">value</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">data</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">items():</span>
+        <span style="color: #F8F8F2">bar_length</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">int((value</span> <span style="color: #FF4689">/</span> <span style="color: #F8F8F2">max_value)</span> <span style="color: #FF4689">*</span> <span style="color: #AE81FF">20</span><span style="color: #F8F8F2">)</span>
+        <span style="color: #F8F8F2">bar</span> <span style="color: #FF4689">=</span> <span style="color: #E6DB74">&quot;█&quot;</span> <span style="color: #FF4689">*</span> <span style="color: #F8F8F2">bar_length</span>
+        <span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;{</span><span style="color: #F8F8F2">name</span><span style="color: #E6DB74">:10} {</span><span style="color: #F8F8F2">bar</span><span style="color: #E6DB74">} {</span><span style="color: #F8F8F2">value</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+    <span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">&quot;=&quot;</span> <span style="color: #FF4689">*</span> <span style="color: #AE81FF">30</span><span style="color: #F8F8F2">)</span>
+
+
+<span style="color: #F8F8F2">create_text_chart(student_grades,</span> <span style="color: #E6DB74">&quot;Student Grades&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">
+📊 Student Grades
+==============================
+Alice      ███████████████████ 95
+Bob        █████████████████ 87
+Charlie    ██████████████████ 92
+Diana      ████████████████████ 98
+==============================
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-109"><h3 id="html-rich-display">🌈 HTML Rich Display</h3>
+<p>Plaque supports rich HTML output for beautiful presentations:</p></div>
+<div class="cell code-cell" id="cell-114">
+<div class="cell-counter">7</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #FF4689">from</span><span style="color: #F8F8F2"> IPython.display </span><span style="color: #FF4689">import</span> <span style="color: #F8F8F2">HTML</span>
+
+<span style="color: #959077"># Simple HTML example - Plaque displays rich HTML automatically</span>
+<span style="color: #F8F8F2">HTML(</span><span style="color: #E6DB74">f&quot;&quot;&quot;</span>
+<span style="color: #E6DB74">&lt;div style=&quot;border: 2px solid #4CAF50; border-radius: 8px; padding: 15px; </span>
+<span style="color: #E6DB74">           background: #f0f8ff; font-family: Arial;&quot;&gt;</span>
+<span style="color: #E6DB74">    &lt;h3 style=&quot;color: #333; margin-top: 0;&quot;&gt;📊 Student Grades&lt;/h3&gt;</span>
+<span style="color: #E6DB74">    &lt;p&gt;&lt;strong&gt;Average:&lt;/strong&gt; {</span><span style="color: #F8F8F2">sum(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()) </span><span style="color: #FF4689">/</span><span style="color: #F8F8F2"> len(student_grades)</span><span style="color: #E6DB74">:.1f}&lt;/p&gt;</span>
+<span style="color: #E6DB74">    &lt;ul&gt;</span>
+<span style="color: #E6DB74">        {&quot;&quot;</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">join([</span><span style="color: #E6DB74">f&quot;&lt;li&gt;&lt;strong&gt;{</span><span style="color: #F8F8F2">name</span><span style="color: #E6DB74">}:&lt;/strong&gt; {</span><span style="color: #F8F8F2">grade</span><span style="color: #E6DB74">}&lt;/li&gt;&quot;</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">for</span><span style="color: #F8F8F2"> name, grade </span><span style="color: #FF4689">in</span><span style="color: #F8F8F2"> student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">items()])</span><span style="color: #E6DB74">}</span>
+<span style="color: #E6DB74">    &lt;/ul&gt;</span>
+<span style="color: #E6DB74">&lt;/div&gt;</span>
+<span style="color: #E6DB74">&quot;&quot;&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-output">
+<div class="output-content">
+<div style="border: 2px solid #4CAF50; border-radius: 8px; padding: 15px; 
+           background: #f0f8ff; font-family: Arial;">
+    <h3 style="color: #333; margin-top: 0;">📊 Student Grades</h3>
+    <p><strong>Average:</strong> 93.0</p>
+    <ul>
+        <li><strong>Alice:</strong> 95</li><li><strong>Bob:</strong> 87</li><li><strong>Charlie:</strong> 92</li><li><strong>Diana:</strong> 98</li>
+    </ul>
+</div>
+</div>
+</div>
+</div>
+<div class="markdown-content" id="cell-129"><h2 id="live-updates-state-management">🔄 Live Updates &amp; State Management</h2>
+<p>Plaque solves a key problem with traditional IPython notebooks: <strong>state management</strong>. In Jupyter notebooks, cells can be run out of order, creating confusing state where variables might not match what you see on screen.</p>
+<p>Plaque takes a different approach:<br />
+- <strong>Top-to-bottom execution</strong>: Your notebook runs like a regular Python file, from top to bottom<br />
+- <strong>Smart re-execution</strong>: Only cells that changed (or depend on changed variables) are re-run<br />
+- <strong>Predictable state</strong>: What you see is always what you get - no hidden state surprises</p>
+<p>Unlike systems like Marimo that have full dependency resolution, Plaque keeps it simple: it runs your code sequentially but only re-executes what's necessary. This gives you the benefits of live updates without the complexity of a full reactive system.</p>
+<p>Change any value above and save to see instant, predictable updates!</p></div>
+<div class="cell code-cell" id="cell-143">
+<div class="cell-counter">8</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #66D9EF">def</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">fibonacci_sequence</span><span style="color: #F8F8F2">(n):</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">&quot;&quot;&quot;Generate the first n Fibonacci numbers&quot;&quot;&quot;</span>
+    <span style="color: #66D9EF">if</span> <span style="color: #F8F8F2">n</span> <span style="color: #FF4689">&lt;=</span> <span style="color: #AE81FF">0</span><span style="color: #F8F8F2">:</span>
+        <span style="color: #66D9EF">return</span> <span style="color: #F8F8F2">[]</span>
+    <span style="color: #66D9EF">elif</span> <span style="color: #F8F8F2">n</span> <span style="color: #FF4689">==</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">:</span>
+        <span style="color: #66D9EF">return</span> <span style="color: #F8F8F2">[</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">]</span>
+    <span style="color: #66D9EF">elif</span> <span style="color: #F8F8F2">n</span> <span style="color: #FF4689">==</span> <span style="color: #AE81FF">2</span><span style="color: #F8F8F2">:</span>
+        <span style="color: #66D9EF">return</span> <span style="color: #F8F8F2">[</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">]</span>
+
+    <span style="color: #F8F8F2">fib</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">[</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">]</span>
+    <span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">i</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">range(</span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">n):</span>
+        <span style="color: #F8F8F2">fib</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">append(fib[i</span> <span style="color: #FF4689">-</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">]</span> <span style="color: #FF4689">+</span> <span style="color: #F8F8F2">fib[i</span> <span style="color: #FF4689">-</span> <span style="color: #AE81FF">2</span><span style="color: #F8F8F2">])</span>
+
+    <span style="color: #66D9EF">return</span> <span style="color: #F8F8F2">fib</span>
+
+
+<span style="color: #959077"># Try changing this number and saving the file!</span>
+<span style="color: #F8F8F2">fib_count</span> <span style="color: #FF4689">=</span> <span style="color: #AE81FF">12</span>
+<span style="color: #F8F8F2">fibonacci_numbers</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">fibonacci_sequence(fib_count)</span>
+
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;First {</span><span style="color: #F8F8F2">fib_count</span><span style="color: #E6DB74">} Fibonacci numbers:&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(fibonacci_numbers)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">First 12 Fibonacci numbers:
+[0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-168"><h3 id="random-experiments">🎲 Random Experiments</h3>
+<p>Let's create something fun that generates different results each time:</p></div>
+<div class="cell code-cell" id="cell-173">
+<div class="cell-counter">9</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #FF4689">import</span><span style="color: #F8F8F2"> random</span>
+
+
+<span style="color: #66D9EF">def</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">roll_dice</span><span style="color: #F8F8F2">(num_dice</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">num_sides</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">6</span><span style="color: #F8F8F2">):</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">&quot;&quot;&quot;Roll some dice and return the results&quot;&quot;&quot;</span>
+    <span style="color: #F8F8F2">rolls</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">[random</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">randint(</span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">num_sides)</span> <span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">_</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">range(num_dice)]</span>
+    <span style="color: #F8F8F2">total</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">sum(rolls)</span>
+
+    <span style="color: #66D9EF">return</span> <span style="color: #F8F8F2">{</span><span style="color: #E6DB74">&quot;rolls&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">rolls,</span> <span style="color: #E6DB74">&quot;total&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">total,</span> <span style="color: #E6DB74">&quot;average&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">total</span> <span style="color: #FF4689">/</span> <span style="color: #F8F8F2">num_dice}</span>
+
+
+<span style="color: #959077"># Roll some dice - try saving the file multiple times to see different results!</span>
+<span style="color: #F8F8F2">dice_result</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">roll_dice(</span><span style="color: #AE81FF">3</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">6</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;🎲 Dice rolls: {</span><span style="color: #F8F8F2">dice_result[</span><span style="color: #E6DB74">&#39;rolls&#39;</span><span style="color: #F8F8F2">]</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;Total: {</span><span style="color: #F8F8F2">dice_result[</span><span style="color: #E6DB74">&#39;total&#39;</span><span style="color: #F8F8F2">]</span><span style="color: #E6DB74">}&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">print(</span><span style="color: #E6DB74">f&quot;Average: {</span><span style="color: #F8F8F2">dice_result[</span><span style="color: #E6DB74">&#39;average&#39;</span><span style="color: #F8F8F2">]</span><span style="color: #E6DB74">:.1f}&quot;</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+</div>
+<div class="cell-stdout">
+<pre class="stdout-content">🎲 Dice rolls: [2, 3, 2]
+Total: 7
+Average: 2.3
+</pre>
+</div>
+</div>
+<div class="markdown-content" id="cell-191"><h3 id="try-this-yourself">🎯 Try This Yourself!</h3>
+<p>Change values above and save to see instant updates:<br />
+- Change <code>fib_count</code> to 15<br />
+- Try <code>roll_dice(5, 10)</code> for 5 ten-sided dice<br />
+- Add a new student to <code>student_grades</code><br />
+- Modify the <code>user_name</code> variable</p>
+<p>Each save triggers re-execution and live updates!</p></div>
+<div class="markdown-content" id="cell-203"><h2 id="rich-data-displays">📊 Rich Data Displays</h2>
+<p>Plaque automatically displays DataFrames, plots, and other rich objects:</p></div>
+<div class="markdown-content" id="cell-209"><h3 id="pandas-dataframes">🐼 Pandas DataFrames</h3>
+<p>DataFrames are automatically displayed as HTML tables (requires: pip install pandas):</p></div>
+<div class="cell code-cell" id="cell-214">
+<div class="cell-counter">10</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #FF4689">import</span><span style="color: #F8F8F2"> pandas </span><span style="color: #66D9EF">as</span><span style="color: #F8F8F2"> pd</span>
+
+<span style="color: #959077"># Create a sample DataFrame</span>
+<span style="color: #F8F8F2">df</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">pd</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">DataFrame(</span>
+    <span style="color: #F8F8F2">{</span>
+        <span style="color: #E6DB74">&quot;Student&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">list(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">keys()),</span>
+        <span style="color: #E6DB74">&quot;Grade&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">list(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()),</span>
+        <span style="color: #E6DB74">&quot;Letter&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">[</span>
+            <span style="color: #E6DB74">&quot;A&quot;</span> <span style="color: #66D9EF">if</span> <span style="color: #F8F8F2">g</span> <span style="color: #FF4689">&gt;=</span> <span style="color: #AE81FF">90</span> <span style="color: #66D9EF">else</span> <span style="color: #E6DB74">&quot;B&quot;</span> <span style="color: #66D9EF">if</span> <span style="color: #F8F8F2">g</span> <span style="color: #FF4689">&gt;=</span> <span style="color: #AE81FF">80</span> <span style="color: #66D9EF">else</span> <span style="color: #E6DB74">&quot;C&quot;</span> <span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">g</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()</span>
+        <span style="color: #F8F8F2">],</span>
+    <span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077"># DataFrames are automatically displayed as HTML tables</span>
+<span style="color: #F8F8F2">df</span>
+
+<span style="color: #959077"># You can also create more complex DataFrames with calculations</span>
+<span style="color: #F8F8F2">summary_df</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">pd</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">DataFrame(</span>
+    <span style="color: #F8F8F2">{</span>
+        <span style="color: #E6DB74">&quot;Metric&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">[</span><span style="color: #E6DB74">&quot;Total Students&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Average Grade&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Highest Grade&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;Lowest Grade&quot;</span><span style="color: #F8F8F2">],</span>
+        <span style="color: #E6DB74">&quot;Value&quot;</span><span style="color: #F8F8F2">:</span> <span style="color: #F8F8F2">[</span>
+            <span style="color: #F8F8F2">len(student_grades),</span>
+            <span style="color: #E6DB74">f&quot;{</span><span style="color: #F8F8F2">sum(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()) </span><span style="color: #FF4689">/</span><span style="color: #F8F8F2"> len(student_grades)</span><span style="color: #E6DB74">:.1f}&quot;</span><span style="color: #F8F8F2">,</span>
+            <span style="color: #F8F8F2">max(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()),</span>
+            <span style="color: #F8F8F2">min(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values()),</span>
+        <span style="color: #F8F8F2">],</span>
+    <span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">summary_df</span>
+</code></pre></div>
+</div>
+<div class="cell-output">
+<div class="output-content"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Metric</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Total Students</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Average Grade</td>
+      <td>93.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Highest Grade</td>
+      <td>98</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Lowest Grade</td>
+      <td>87</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</div>
+<div class="markdown-content" id="cell-246"><h3 id="matplotlib-plots">🎬 Matplotlib Plots</h3>
+<p>Plots are automatically captured and displayed (requires: pip install matplotlib):</p></div>
+<div class="cell code-cell" id="cell-251">
+<div class="cell-counter">11</div>
+<div class="cell-input">
+<div class="code-content"><pre><code><span style="color: #FF4689">import</span><span style="color: #F8F8F2"> matplotlib.pyplot </span><span style="color: #66D9EF">as</span><span style="color: #F8F8F2"> plt</span>
+
+<span style="color: #959077"># Create a simple plot</span>
+<span style="color: #F8F8F2">x</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">list(range(</span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">11</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">y</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">[i</span><span style="color: #FF4689">**</span><span style="color: #AE81FF">2</span> <span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">i</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">x]</span>
+
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">figure(figsize</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">10</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">6</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">plot(x,</span> <span style="color: #F8F8F2">y,</span> <span style="color: #E6DB74">&quot;bo-&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">linewidth</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">markersize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">8</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">title(</span><span style="color: #E6DB74">&quot;Square Numbers&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontsize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">16</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontweight</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;bold&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">xlabel(</span><span style="color: #E6DB74">&quot;Number&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontsize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">12</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">ylabel(</span><span style="color: #E6DB74">&quot;Square&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontsize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">12</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">grid(</span><span style="color: #66D9EF">True</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">alpha</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">0.3</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">show()</span>
+
+<span style="color: #959077"># Also create a bar chart of our student grades</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">figure(figsize</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">10</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">6</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">names</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">list(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">keys())</span>
+<span style="color: #F8F8F2">grades</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">list(student_grades</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">values())</span>
+
+<span style="color: #F8F8F2">bars</span> <span style="color: #FF4689">=</span> <span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">bar(names,</span> <span style="color: #F8F8F2">grades,</span> <span style="color: #F8F8F2">color</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">[</span><span style="color: #E6DB74">&quot;#FF6B6B&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;#4ECDC4&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;#45B7D1&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #E6DB74">&quot;#96CEB4&quot;</span><span style="color: #F8F8F2">])</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">title(</span><span style="color: #E6DB74">&quot;Student Grades&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontsize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">16</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontweight</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;bold&quot;</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">ylabel(</span><span style="color: #E6DB74">&quot;Grade&quot;</span><span style="color: #F8F8F2">,</span> <span style="color: #F8F8F2">fontsize</span><span style="color: #FF4689">=</span><span style="color: #AE81FF">12</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">ylim(</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">100</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077"># Add value labels on bars</span>
+<span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">bar,</span> <span style="color: #F8F8F2">grade</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">zip(bars,</span> <span style="color: #F8F8F2">grades):</span>
+    <span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">text(</span>
+        <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_x()</span> <span style="color: #FF4689">+</span> <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_width()</span> <span style="color: #FF4689">/</span> <span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span>
+        <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_height()</span> <span style="color: #FF4689">+</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span>
+        <span style="color: #F8F8F2">str(grade),</span>
+        <span style="color: #F8F8F2">ha</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;center&quot;</span><span style="color: #F8F8F2">,</span>
+        <span style="color: #F8F8F2">va</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;bottom&quot;</span><span style="color: #F8F8F2">,</span>
+        <span style="color: #F8F8F2">fontweight</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">&quot;bold&quot;</span><span style="color: #F8F8F2">,</span>
+    <span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">tight_layout()</span>
+<span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">show()</span>
+</code></pre></div>
+</div>
+<div class="cell-output">
+<div class="output-content"><div class="png-output"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA1YAAAIpCAYAAAChX6nLAAAAOnRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjEwLjMsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcvZiW1igAAAAlwSFlzAAAPYQAAD2EBqD+naQAAafNJREFUeJzt3XmcjeX/x/H3OcMsmMUwZuwmUZGlCKGyRSo7pcjSXmSriFDK3iYlW4XEV5GZJq2+ki1bSt+KLEWUxgizUDOYc//+uH9zjmNmNGY59zlnXs/HYx7Hdd33OedzZi7L23Xd120zDMMQAAAAACDf7FYXAAAAAAC+jmAFAAAAAAVEsAIAAACAAiJYAQAAAEABEawAAAAAoIAIVgAAAABQQAQrAAAAACggghUAAAAAFBDBCgAAAAAKiGAFAF7g1KlTevHFF3XjjTeqfPnyKlmypMLDw1WjRg01adJEAwcO1Msvv6xDhw5ZXarfWbhwoWw2m9vXI488kuO5NWrUcDvv4MGDni22AC6sHQBQuEpYXQAAFHf79u3TzTffrN9++82tPzU1Vampqfrtt9+0fft2SVKFChXUt29fK8osVt566y098cQTqlmzptWlAAB8BDNWAGAhwzDUu3dvt1BVvnx5tW3bVl26dFHLli0VGRlpYYXF09mzZzV+/HirywAA+BBmrADAQjt37tS3337rbHfp0kUrVqxQiRIlsp33/vvvq3z58p4usdj6z3/+o1GjRql+/fpWlwIA8AHMWAGAhfbu3evWvummm7KFKklq2LChJk+erFtuuSXH19m0aZNuvfVWlS1bVqVKlVLDhg316quvKjMz86LX1lx4fdGzzz6b7bXPP16jRg23Y8ePH9fzzz+vHj16qG7duoqJiVFQUJBKlSqlatWqqXPnzlqyZIkcDke2183pvQ8cOKABAwaocuXKKlGihAYMGOD2nD///FPPPPOMmjVrpsjISJUsWVLly5dXu3bt9NZbb+ns2bM5fn/ywzAMjRkzJs/nHzx40O3ztGrVKts5rVq1yvUarZyen5ycrMcff1zVq1dXcHCwateurSlTpujcuXOSzPHTp08fVahQQcHBwbr66qv16quvyjCMPNW8cuVK3XjjjQoLC1NoaKhuuOEGrVy5Mtfzz507p6VLl6pz586qUqWKgoODFRoaqnr16unJJ5/U77//nuPzLhyDhmFo/vz5atq0qcLCwty+F8ePH9ezzz6rpk2bOn/GYWFhuuyyy9S2bVuNGjVK69evz9PnAwCPMgAAllm5cqUhyfkVFRVlvPbaa8a+ffvy/BoLFy407Ha72+tkfd12221GpUqV3PrOt2DBArdjzzzzTLbXP/949erV3Y5t3749x/e98KtDhw7GmTNnLvrenTt3NsLCwtz6+vfv7/a9uvD4hV9NmjQxEhMT8/y9y6mO5s2bGyVKlHC2N27c6Dy3evXqbuceOHDAeezAgQNux2666aZs73XTTTfl+fl16tQxatWqlePn7NWrl7FhwwajTJkyOR4fMWJEtve+sPaRI0fm+n0cP358tucfOXLEaNKkyUW//6GhocaHH374r+99zz33ZHvugQMHjGPHjmU7N6evHj16XNLPGAA8gRkrALBQs2bN3Gaojh07pscee0y1atVS2bJl1bZtWz377LP64Ycfcnz+3r179dBDD7nNCFWoUEHt27dXbGysPv74Yx05cqTIP0dMTIyaNm2qW265RZ07d1bz5s0VEhLiPP75559r1qxZF32NhIQEpaamqkqVKurYsaOaNGmigIAASdLXX3+tO++8U6mpqZLMWbTGjRvr9ttvd9tgYtu2berWrVueZ2xyUqtWLd17773O9ujRo/P9WgWxa9cu7du3T/Xr13fOdGVZvny5OnTooNOnT6tp06Zq3Lix23NfffXVXGePskyfPl3R0dFq3759tpnI5557TqtXr3a2z549q1tvvVXbtm1z9lWpUkW33nqrWrRoIbvd/OdEWlqa7rzzTn3//fcXfe/FixcrKChITZo00S233KLo6GhJ0vz5892uN6xRo4Zuv/123XzzzapTp47bmAIAr2N1sgOA4m78+PF5mvXp1KmTkZSU5PbcRx99NNtsS2pqqmEYhnHu3Dmjb9++2V7nfAWdsUpOTjb27t2b4+dKTEw0Spcu7Xxu06ZNL/rekoxRo0YZmZmZznPS09MNwzCMli1bOs8pUaKEsX79euc5DofDeOihh9xeZ8WKFRf/pl+kjv79+xt//PGHERIS4uz7+OOPDcPw7IyVJGPcuHHO408++WS242+//bbzeJcuXdyOLVq0yO29L6y9VatWxqlTpwzDMMdKnz593I63bt3a+dw333zT7dijjz7q9nPatGmTYbPZnMdvv/32i7539erVjV27djmPnzt3zjh37pzxwAMPOM+pXbu2ce7cObfXycjIMNasWXNJP18A8BRmrADAYhMmTNDbb7+t6tWrX/S8jz76SF26dHGbjfnvf//rds748eMVGhoqSQoICNDUqVMLv+DzhIeH68yZMxoyZIiuueYalS1bViVLlpTNZlNMTIxOnz7tPPfnn3++6GvVrl1bkyZNcs5+SFJQUJCOHTumTZs2OfvKlCmjV199VT179lTPnj3Vq1cv/fjjj26v9dFHHxXoc1WqVEmDBw92tp9++ukCzYLlR5kyZdxmy1q0aOF2vGbNmho4cKCz3bZtW7fjf/zxx0Vf//nnn1fp0qUlmWNl2rRpbsc3btyo9PR0SVJcXJzbsX379umOO+5w/gxefvllBQYGOo+vXr1aGRkZub73xIkTddVVVznbAQEBCggIcPs9cODAAY0ZM0bLly/Xt99+q1OnTikwMFBt2rRRjx49LvrZAMAK7AoIAF5g4MCBGjBggLZu3ap169Zp8+bN2rBhg06cOOF23ubNm7V582Y1b95ckrLdMLhevXpu7cqVKysiIkLJyclFUvf777+vPn36ODdTuJiUlJSLHr/hhhucS//Od/DgQbdQk5ycrA8++OCir3XgwIF/reffPPXUU5o3b55SUlK0c+dOvffeewV+zUtRs2ZNt6VvWYE5S926dd3aFx6/WLCRlG23wwvHytmzZ3XkyBFddtll2b6f5y8TzElGRoaOHDmi2NjYHI/ntLGHJD3wwAOaN2+eDh06pLNnz2r69OnOYzabTVdeeaW6dOmiESNGKCoq6qI1AICnMWMFAF7CZrOpWbNmGjVqlOLj43Xs2DElJCSoTJkybuft3r27yGq4MCAdPXo013PPnDmjRx55xO05UVFR6tChg3r06KEePXqoVKlSeX7vSpUqXXrBuTh/piy/IiMjNXLkSGd73LhxeQqQWXI692LfzwtFRES4tc+fyZOksmXL5vm1rHCxn0FuP+sKFSpo586dmjRpkpo3b+6cUZMkwzC0e/duTZ06VU2aNHFebwcA3oJgBQAWSklJ0d9//53jMbvdrk6dOunmm2926y9ZsqTz19WqVXM7duGSuCNHjlx0tur85VuSudX1+TZs2JDrc3/66Se3GbWGDRvq8OHD+uyzz7RixQotW7Ys1+fm5MLgkKV69epuGzdceeWVMgzjol/ffPPNJb13boYOHaqYmBhJ0v79+y+6vO7fvpdHjhzRL7/8Uih1FYYLN0S5cKyULFlSFStWlKRsM09btmz515/B1Vdfnet75/azlszAOGbMGG3atElpaWk6evSoNmzYoG7dujnPOXjw4EW3hQcAKxCsAMBCP/zwg6pVq6YxY8ZkC0WSudRvy5Ytbn3nLwFr166d27Hnn39ep06dkiRlZmb+6452F84crFq1yrmb3L59+/TUU0/l+twL7xkVGBjoDH0Oh0OjR4/ONTReigoVKqhZs2bO9s8//6ypU6cqMzPT7bxz585p7dq1uu+++7R169YCv68klS5dWmPHjs3TueXLl3cLV3v27NHatWslmbvlPfjgg4V6n62CGj9+vPPnk9NYadGihXMpYufOnd2ODR8+XElJSdlec//+/Zo2bZqee+65fNW0du1aLV682BnYbTabKlSooJYtW6pjx45u5yYmJubrPQCgqHCNFQBY7Pjx45oyZYqmTJmi8uXLq27dugoPD9eJEye0detWt3+MX3PNNbr22mud7WHDhumtt95yXk+zceNGXX755WrYsKH27dunX3/99aLv3aRJE4WFhTmXVf3++++67LLLVLFiRR0+fPiiGzZcffXVKlOmjDPIbdu2TbVr19aVV16pXbt26cCBA86bwRbU1KlT1bZtW+fyutGjR2vmzJm6+uqrFRQUpKNHj+qnn35yBoV77rmnwO+Z5cEHH9TLL7/8r9/LwMBA3Xjjjc4NRQzDUNu2bVW1alX9+eefXhWqJOnLL79UzZo11aBBA+3duzfbdVTnh+oBAwZo5syZ+umnnySZ1/pVq1ZNjRo1UlRUlFJTU7Vnzx7n1v79+/fPV03ff/+9hg8froCAANWuXVvVqlVTSEiIEhMTtX37drdzz9/8AgC8ATNWAGCh85e4SdJff/2ldevWKSEhQRs3bnT7x3i1atW0bNkyt+fUqlVLc+fOdVtadfToUX3++ef69ddf1atXL1WpUiXX9y9VqpQmTJjg1nf27FkdOnRIhmFoyJAhF33u5MmT3fp++eUXffzxxzpw4IAGDx6cbalift14441aunSpwsLCnH1//vmnVq9erVWrVmn79u1us2Pn3xusoEqWLJnte5SbiRMnus1aGYbh3IihZcuWuuaaawqtroK6//77lZiYqM8//zxbqHr66afVoUMHZzswMFCfffaZ2/2y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" style="max-width: 100%; height: auto;"></div></div>
+</div>
+</div>
+<div class="markdown-content" id="cell-290"><h2 id="how-to-use-this-notebook">🚀 How to Use This Notebook</h2>
+<p>Now that you've seen what Plaque can do, here's how to use it:</p>
+<h3 id="development-mode-recommended">💻 Development Mode (Recommended)</h3>
+<div class="highlight"><pre><span></span><code>plaque<span class="w"> </span>serve<span class="w"> </span>getting-started.py<span class="w"> </span>--open
+</code></pre></div>
+
+<p>This starts a live server that:<br />
+- ✅ Opens your notebook in the browser<br />
+- ✅ Updates automatically when you save changes<br />
+- ✅ Shows errors clearly if something goes wrong<br />
+- ✅ Lets you experiment and iterate quickly<br />
+- ✅ Exposes a REST API for programmatic access (perfect for agentic coding with assistants like Claude Code)</p>
+<h3 id="export-mode">📄 Export Mode</h3>
+<div class="highlight"><pre><span></span><code>plaque<span class="w"> </span>render<span class="w"> </span>getting-started.py<span class="w"> </span>output.html<span class="w"> </span>--open
+</code></pre></div>
+
+<p>This creates a static HTML file that you can:<br />
+- ✅ Share with others<br />
+- ✅ View without running Plaque<br />
+- ✅ Include in presentations or reports</p>
+<h3 id="watch-mode">👀 Watch Mode</h3>
+<div class="highlight"><pre><span></span><code>plaque<span class="w"> </span>watch<span class="w"> </span>getting-started.py<span class="w"> </span>output.html<span class="w"> </span>--open
+</code></pre></div>
+
+<p>This watches for file changes and automatically regenerates the HTML.</p></div>
+<div class="markdown-content" id="cell-326"><h2 id="whats-next">🎪 What's Next?</h2>
+<p>✅ <strong>Try other examples</strong>: <code>simple_interactive.py</code>, <code>data_exploration.py</code><br />
+✅ <strong>Create your own</strong>: Any <code>.py</code> file can become a Plaque notebook<br />
+✅ <strong>Remember</strong>: Use your favorite editor and save often for live updates!</p>
+<p><strong>Happy coding with Plaque! 🌟</strong></p></div>
+    </div>
+</body>
+</html>

@@ -5,6 +5,8 @@ A local-first notebook system for Python, inspired by
 into interactive notebooks with real-time updates and smart dependency
 tracking.
 
+**👉 Check out [`examples/getting-started.py`](examples/getting-started.py) and its rendered version at [`examples/getting-started.html`](examples/getting-started.html) to see Plaque in action!**
+
 ## Features
 
 - **Local-first**: Uses plain Python files as the source - and your own editor - no special file formats
