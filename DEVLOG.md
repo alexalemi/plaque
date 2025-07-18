@@ -6,10 +6,16 @@
  - [X] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [X] Package Setup.
  - [X] Add a rest style server API for better agentic support.
+ - [ ] Create MCP server
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
  - [ ] Enhanced pandas and plotting support (from marimo?)
  - [ ] Add other mime types (pdf, video)
+
+
+## 2025-07-18
+
+Added a `gettting-started.py` example.
 
 
 ## 2025-07-16
