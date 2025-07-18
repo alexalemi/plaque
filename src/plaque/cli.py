@@ -6,6 +6,7 @@ import logging
 import sys
 import time
 import webbrowser
+import asyncio
 from pathlib import Path
 from functools import partial
 from typing import Optional
@@ -224,6 +225,62 @@ def serve(ctx, input, port, bind, open_browser):
         sys.exit(1)
     except Exception as e:
         click.echo(f"Error starting server: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("input", type=click.Path(exists=True, dir_okay=False))
+@click.option("--verbose", "-v", is_flag=True, help="Verbose MCP server output")
+@click.pass_context
+def mcp(ctx, input, verbose):
+    """
+    Start MCP (Model Context Protocol) server for notebook inspection.
+
+    INPUT: Path to the Python notebook file
+
+    The MCP server provides read-only access to notebook state, cells, and analysis
+    for AI agents and tools. It uses stdio transport for communication.
+
+    Examples:
+
+      plaque mcp my_notebook.py
+      plaque mcp my_notebook.py --verbose
+    """
+    input_path = Path(input).resolve()
+
+    # Configure logging for MCP server
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
+    else:
+        logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
+
+    # Get options from context
+    use_dependency_tracking = ctx.obj.get("use_dependency_tracking", True)
+
+    # Create processor
+    processor = Processor(use_dependency_tracking=use_dependency_tracking)
+
+    try:
+        # Import MCP server here to avoid import errors if not available
+        from .mcp import MCPServer
+
+        # Create and run MCP server
+        server = MCPServer(input_path, processor)
+
+        # Process notebook initially
+        with open(input_path, "r") as f:
+            cells = list(parse_ast(f))
+        processor.process_cells(cells)
+
+        # Run the server with stdio transport
+        asyncio.run(server.run_stdio())
+
+    except ImportError as e:
+        click.echo(f"MCP server dependencies not available: {e}", err=True)
+        click.echo("MCP functionality requires additional dependencies.", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error starting MCP server: {e}", err=True)
         sys.exit(1)
 
 
