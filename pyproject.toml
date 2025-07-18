@@ -1,6 +1,6 @@
 [project]
 name = "plaque"
-version = "0.2.0"
+version = "0.3.0"
 description = "A local-first notebook system for Python, inspired by Clerk for Clojure"
 readme = "README.md"
 license = { text = "MIT" }

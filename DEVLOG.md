@@ -5,7 +5,7 @@
  - [X] Serve images as files, consider separate json for use with `claude`.
  - [X] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [X] Package Setup.
- - [ ] Add a rest style server API for better agentic support.
+ - [X] Add a rest style server API for better agentic support.
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
  - [ ] Enhanced pandas and plotting support (from marimo?)
@@ -40,7 +40,9 @@ Started on the api branch to make it easier for agents to "see" the notebook.
 Need to remove the data uri's from the api calls, unless requested. And the
 image filenames keep incrementing.
 
-Should also add to the README to document hte f strings as a way of doing formatted markdown.
+Added to the README to document the f strings as a way of doing formatted markdown.
+
+Bumped minor version number to 0.3.0
 
 ## 2025-07-15
 
