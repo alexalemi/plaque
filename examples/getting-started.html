@@ -336,9 +336,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Fira+Sans+Condensed:wght@400;600;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+		<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js" integrity="sha384-NuejywWq7I0qomITfCQmoQ6vhoRC4keD8iNHdUWSqnBoPoQIAccbA/d6uU7oZaic" crossorigin="anonymous"></script>
     <script>
         window.MathJax = {
             tex: {
@@ -396,7 +394,7 @@
 <li>More readable in your text editor</li>
 <li>Proper syntax highlighting</li>
 <li>Easy to write and edit</li>
-<li>Supports full Markdown and LaTeX: $E = mc^2$</li>
+<li>Supports full Markdown and LaTeX: $E=mc^2$</li>
 </ul>
 <p>Just use triple quotes with your markdown content!</p></div>
 <div class="cell code-cell" id="cell-50">
@@ -578,9 +576,9 @@ Diana      ████████████████████ 98
 </code></pre></div>
 </div>
 <div class="cell-stdout">
-<pre class="stdout-content">🎲 Dice rolls: [2, 3, 2]
-Total: 7
-Average: 2.3
+<pre class="stdout-content">🎲 Dice rolls: [1, 1, 2]
+Total: 4
+Average: 1.3
 </pre>
 </div>
 </div>
@@ -709,7 +707,7 @@ Average: 2.3
 <span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">ylim(</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">,</span> <span style="color: #AE81FF">100</span><span style="color: #F8F8F2">)</span>
 
 <span style="color: #959077"># Add value labels on bars</span>
-<span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">bar,</span> <span style="color: #F8F8F2">grade</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">zip(bars,</span> <span style="color: #F8F8F2">grades):</span>
+<span style="color: #66D9EF">for</span> <span style="color: #F8F8F2">bar,</span> <span style="color: #F8F8F2">grade</span> <span style="color: #FF4689">in</span> <span style="color: #F8F8F2">zip(bars,</span> <span style="color: #F8F8F2">grades,</span> <span style="color: #F8F8F2">strict</span><span style="color: #FF4689">=</span><span style="color: #66D9EF">True</span><span style="color: #F8F8F2">):</span>
     <span style="color: #F8F8F2">plt</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">text(</span>
         <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_x()</span> <span style="color: #FF4689">+</span> <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_width()</span> <span style="color: #FF4689">/</span> <span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span>
         <span style="color: #F8F8F2">bar</span><span style="color: #FF4689">.</span><span style="color: #F8F8F2">get_height()</span> <span style="color: #FF4689">+</span> <span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span>

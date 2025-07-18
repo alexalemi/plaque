@@ -43,7 +43,7 @@ This cell you're reading right now is a **multiline comment cell**. This is the 
 - More readable in your text editor
 - Proper syntax highlighting
 - Easy to write and edit
-- Supports full Markdown and LaTeX: $E = mc^2$
+- Supports full Markdown and LaTeX: $E=mc^2$
 
 Just use triple quotes with your markdown content!
 """
