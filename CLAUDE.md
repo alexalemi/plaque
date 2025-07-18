@@ -5,7 +5,7 @@ Plaque is a local-first notebook system that turns regular Python files into int
 ## Basic Usage
 
 ### Creating Notebook Cells
-Plaque supports two cell formats:
+Plaque supports three cell formats:
 
 **Traditional markers:**
 ```python
@@ -39,6 +39,30 @@ The value of x is displayed below:
 """
 
 x  # This will be displayed as output
+```
+
+**F-style comments (programmatic templating):**
+```python
+f"""
+# Dynamic Analysis Report
+
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Dataset: {dataset_name}
+"""
+
+dataset_name = "User Metrics"
+sample_count = 1000
+mean_value = 42.5
+
+f"""
+## Key Findings
+
+- Sample size: {sample_count:,} observations
+- Average value: {mean_value:.2f}
+- Status: {'✅ Complete' if sample_count > 500 else '⚠️ Insufficient data'}
+
+The analysis shows {sample_count} data points with an average of {mean_value}.
+"""
 ```
 
 ### Running Your Notebook

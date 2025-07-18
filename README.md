@@ -92,6 +92,35 @@ The plot shows a quadratic relationship between x and y.
 """
 ```
 
+### 3. F-style Top Level Comments (Programmatic Templates)
+
+Using f-string style comments for programmatic templated output:
+
+```python
+f"""
+# Dynamic Report for {dataset_name}
+
+Results generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Summary Statistics
+- Total samples: {len(data)}
+- Mean value: {np.mean(data):.2f}
+- Standard deviation: {np.std(data):.2f}
+"""
+
+dataset_name = "Sales Data Q4"
+data = [1, 2, 3, 4, 5]
+
+f"""
+## Analysis Results
+
+The dataset '{dataset_name}' contains {len(data)} data points.
+Maximum value observed: {max(data)}
+"""
+```
+
+F-style comments allow you to create dynamic markdown cells that incorporate variables and expressions, making them perfect for automated reports and templated notebooks.
+
 Both styles support:
 - Markdown formatting with bold, italic, lists, etc.
 - LaTeX equations (both inline and display)
