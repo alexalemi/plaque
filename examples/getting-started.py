@@ -274,7 +274,7 @@ plt.ylabel("Grade", fontsize=12)
 plt.ylim(0, 100)
 
 # Add value labels on bars
-for bar, grade in zip(bars, grades):
+for bar, grade in zip(bars, grades, strict=True):
     plt.text(
         bar.get_x() + bar.get_width() / 2,
         bar.get_height() + 1,

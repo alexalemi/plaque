@@ -133,7 +133,7 @@ ax4.set_xticks(city_indices)
 ax4.set_xticklabels(cities, rotation=45, ha="right")
 
 # Add value labels on bars
-for bar, value in zip(bars, temp_ranges):
+for bar, value in zip(bars, temp_ranges, strict=True):
     ax4.text(
         bar.get_x() + bar.get_width() / 2,
         bar.get_height() + 0.5,

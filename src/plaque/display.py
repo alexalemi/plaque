@@ -2,7 +2,7 @@
 
 import io
 import base64
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from contextlib import contextmanager
 from .renderables import (
     HTML,
@@ -33,7 +33,7 @@ except ImportError:
     Image = None
 
 
-Renderable = Union[HTML, Markdown, Text, PNG, JPEG, SVG, Latex, JSON]
+Renderable = HTML | Markdown | Text | PNG | JPEG | SVG | Latex | JSON
 
 
 def to_renderable(obj: Any, recursion_depth: int = 0) -> Renderable:
