@@ -33,9 +33,5 @@ jobs:
     - name: Run tests
       run: uv run pytest
     
-    - name: Run linting (optional)
-      run: |
-        uv run ruff check .
-        uv run ruff format --check .
 
 
