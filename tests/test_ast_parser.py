@@ -1,9 +1,8 @@
 """Tests for the AST parser module."""
 
-import pytest
 import io
 from src.plaque.ast_parser import parse_ast, ASTParser
-from src.plaque.cell import Cell, CellType
+from src.plaque.cell import CellType
 
 
 class TestASTParser:

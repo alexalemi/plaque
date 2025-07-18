@@ -9,8 +9,7 @@ We'll explore climate data, create visualizations, and build interactive analyse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from IPython.display import HTML, display
+from IPython.display import HTML
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -354,7 +353,7 @@ This example demonstrates several key features of Plaque:
 """
 
 # Final statistics for the curious
-print(f"📊 Dataset Summary:")
+print("📊 Dataset Summary:")
 print(f"   • Cities analyzed: {len(cities)}")
 print(f"   • Months covered: {len(months)}")
 print(f"   • Total data points: {df_temp.size}")

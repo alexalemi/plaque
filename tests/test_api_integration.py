@@ -8,8 +8,6 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-import pytest
-
 
 class TestAPIIntegration:
     """Integration test for the API with a real server."""

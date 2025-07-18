@@ -7,7 +7,7 @@ This module analyzes Python code cells to determine:
 """
 
 import ast
-from typing import Set, Dict, List, Optional, Tuple
+from typing import Set, Dict, List, Tuple
 from .cell import Cell
 
 
@@ -135,7 +135,7 @@ class VariableAnalyzer(ast.NodeVisitor):
         """Visit a list comprehension."""
         # Comprehensions have their own scope
         old_scope_names = self.current_scope_names.copy()
-        old_provides = self.provides.copy()
+        # old_provides = self.provides.copy()
 
         # Add comprehension variables to local scope
         for generator in node.generators:

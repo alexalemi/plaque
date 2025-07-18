@@ -1,13 +1,10 @@
 """Tests for the dependency analyzer module."""
 
-import pytest
-import io
 from src.plaque.dependency_analyzer import (
     analyze_cell_dependencies,
     build_dependency_graph,
     find_cells_to_rerun,
     detect_changed_cells,
-    VariableAnalyzer,
 )
 from src.plaque.cell import Cell, CellType
 from src.plaque.ast_parser import parse_ast

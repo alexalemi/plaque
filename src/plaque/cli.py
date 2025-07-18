@@ -7,7 +7,6 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
-from functools import partial
 from typing import Optional
 
 import click
@@ -122,7 +121,6 @@ def watch(ctx, input, output, open_browser):
       plaque watch my_notebook.py --open
     """
     from .watcher import FileWatcher
-    import time
 
     input_path = Path(input).resolve()
 

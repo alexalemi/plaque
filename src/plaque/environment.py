@@ -6,7 +6,7 @@ import ast
 import sys
 import traceback
 from types import CodeType
-from typing import Any, Optional
+from typing import Any
 from contextlib import redirect_stdout, redirect_stderr
 from .iowrapper import NotebookStdout
 from .cell import Cell

@@ -626,7 +626,7 @@ class TestMatplotlibImprovements:
         text_obj = plt.title("Test")
 
         is_matplotlib_return = env._is_matplotlib_return_value(text_obj)
-        assert is_matplotlib_return == True
+        assert is_matplotlib_return
 
         plt.close("all")
 

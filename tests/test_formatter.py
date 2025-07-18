@@ -1,8 +1,6 @@
 """Tests for the HTML formatter."""
 
-import pytest
 from unittest.mock import Mock, patch, mock_open
-from pathlib import Path
 
 from src.plaque.formatter import (
     format_code,

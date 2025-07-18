@@ -47,7 +47,7 @@ def to_renderable(obj: Any, recursion_depth: int = 0) -> Renderable:
     5. Fall back to repr()
     """
     if recursion_depth > 10:  # Prevent infinite recursion
-        return Text(f"Error: Maximum display recursion depth exceeded.")
+        return Text("Error: Maximum display recursion depth exceeded.")
 
     # 1. _display_() method
     if hasattr(obj, "_display_"):

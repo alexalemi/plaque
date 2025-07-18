@@ -49,7 +49,7 @@ def format_markdown(content: str) -> str:
     """Convert markdown to HTML using the markdown library."""
     try:
         import markdown
-        from markdown.extensions import codehilite, fenced_code, tables, toc
+        from markdown.extensions import codehilite, fenced_code, tables, toc  # noqa: F401
 
         # Configure markdown with useful extensions
         md = markdown.Markdown(
@@ -262,7 +262,6 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
 
 def get_html_template() -> str:
     """Get the HTML template with CSS styling."""
-    import os
 
     template_path = os.path.join(
         os.path.dirname(__file__), "templates", "notebook.html"

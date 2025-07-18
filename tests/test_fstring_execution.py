@@ -1,6 +1,5 @@
 """Tests for f-string execution and rendering."""
 
-import pytest
 import io
 from src.plaque.ast_parser import parse_ast
 from src.plaque.processor import Processor

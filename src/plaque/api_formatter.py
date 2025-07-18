@@ -1,6 +1,5 @@
 """API formatter for converting Cell objects to JSON for agent consumption."""
 
-import json
 import base64
 from typing import Any, Dict, List, Optional
 from pathlib import Path

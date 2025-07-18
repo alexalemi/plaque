@@ -5,7 +5,6 @@ This example demonstrates Plaque's core features with minimal dependencies.
 Perfect for getting started or troubleshooting!
 """
 
-import math
 import random
 from IPython.display import HTML
 

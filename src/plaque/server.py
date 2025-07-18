@@ -14,7 +14,7 @@ from typing import Callable, Optional
 import click
 
 from .watcher import FileWatcher
-from .api_formatter import cell_to_json, cells_to_json, notebook_state_to_json
+from .api_formatter import cell_to_json, notebook_state_to_json
 
 
 class ReusableTCPServer(socketserver.TCPServer):

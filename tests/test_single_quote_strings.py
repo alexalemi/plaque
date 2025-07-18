@@ -1,9 +1,8 @@
 """Tests for single quote string detection in the AST parser."""
 
-import pytest
 import io
 from src.plaque.ast_parser import parse_ast, ASTParser
-from src.plaque.cell import Cell, CellType
+from src.plaque.cell import CellType
 
 
 class TestSingleQuoteStrings:

@@ -1,11 +1,9 @@
 """Tests for API formatter functionality."""
 
-import json
 import base64
 from pathlib import Path
 import tempfile
 
-import pytest
 
 from plaque.cell import Cell, CellType
 from plaque.api_formatter import (

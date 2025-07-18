@@ -2,7 +2,7 @@
 
 import pytest
 import base64
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from src.plaque.display import to_renderable
 from src.plaque.renderables import (

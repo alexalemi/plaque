@@ -1,7 +1,5 @@
 """File watcher for live updates."""
 
-import time
-import threading
 from typing import Callable, Optional
 from pathlib import Path
 import logging

@@ -1,6 +1,5 @@
 """Tests for the processor module."""
 
-import pytest
 from unittest.mock import Mock, patch
 
 from src.plaque.processor import Processor
@@ -226,7 +225,7 @@ class TestRerunLogic:
             Cell(CellType.CODE, "y = 2", 2),
             Cell(CellType.CODE, "z = 3", 3),
         ]
-        result1 = processor.process_cells(cells1)
+        processor.process_cells(cells1)
 
         # Second run with fewer cells
         cells2 = [Cell(CellType.CODE, "x = 1", 1), Cell(CellType.CODE, "y = 2", 2)]
@@ -260,7 +259,7 @@ class TestRerunLogic:
 
         # First run with empty cell
         cell1 = Cell(CellType.CODE, "", 1)
-        result1 = processor.process_cells([cell1])
+        processor.process_cells([cell1])
 
         # Second run with same empty cell
         cell2 = Cell(CellType.CODE, "", 1)

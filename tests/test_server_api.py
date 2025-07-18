@@ -14,7 +14,7 @@ import pytest
 from plaque.cell import Cell, CellType
 from plaque.server import NotebookHTTPServer
 from plaque.processor import Processor
-from plaque.renderables import Text, HTML, PNG
+from plaque.renderables import HTML, PNG
 
 
 class TestServerAPI:
@@ -238,7 +238,6 @@ class TestAPIFormatterIntegration:
 
     def test_format_result_with_renderables(self):
         """Test formatting various renderable types."""
-        from plaque.api_formatter import format_result
 
         # Test HTML result
         html_cell = Cell(
