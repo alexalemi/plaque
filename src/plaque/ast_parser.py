@@ -42,18 +42,25 @@ class ASTParser:
 
         Returns (prefix, delimiter, content_start) or None if not a string literal.
         Handles prefixes like r, b, u, f, rb, br, fr, etc.
+        Supports all Python string quote types: ', ", ''', \"\"\"
         """
         stripped = line.strip()
 
-        # Check for various string prefixes (case-insensitive)
-        # Extended pattern to handle all valid Python string prefixes
-        prefix_pattern = re.match(r'^([rbufRBUF]{0,3})("""|\'\'\')(.*)$', stripped)
-        if prefix_pattern:
-            prefix = prefix_pattern.group(1).lower()
-            delimiter = prefix_pattern.group(2)
-            rest = prefix_pattern.group(3)
-            content_start = len(prefix) + len(delimiter)
-            return (prefix, delimiter, content_start)
+        # Check for string prefixes first
+        prefix_match = re.match(r"^([rbufRBUF]{0,3})", stripped)
+        prefix = prefix_match.group(1).lower() if prefix_match else ""
+        after_prefix = stripped[len(prefix) :]
+
+        # Check for delimiters in order of precedence (triple quotes first)
+        triple_double = chr(34) * 3
+        triple_single = chr(39) * 3
+        double_quote = chr(34)
+        single_quote = chr(39)
+
+        for delimiter in [triple_double, triple_single, double_quote, single_quote]:
+            if after_prefix.startswith(delimiter):
+                content_start = len(prefix) + len(delimiter)
+                return (prefix, delimiter, content_start)
 
         return None
 
@@ -225,7 +232,9 @@ class ASTParser:
                         # We're inside a string
                         if line.rstrip().endswith(string_delimiter):
                             # End of string
-                            content_lines.append(line.rstrip()[:-3])
+                            content_lines.append(
+                                line.rstrip()[: -len(string_delimiter)]
+                            )
                             break
                         else:
                             content_lines.append(line)
@@ -252,7 +261,14 @@ class ASTParser:
         if content.endswith(delimiter) and len(content) > len(delimiter):
             return start_line
 
-        # Multi-line string, find the closing delimiter
+        # For single/double quotes, they're usually single-line unless explicitly multiline
+        # Triple quotes are more commonly multiline
+        if delimiter in ('"', "'"):
+            # Single/double quotes are typically single-line strings
+            # If we don't find the closing quote on this line, assume it ends on this line
+            return start_line
+
+        # Multi-line string (typically triple quotes), find the closing delimiter
         for i in range(start_line, len(self.source_lines)):
             if self.source_lines[i].rstrip().endswith(delimiter):
                 return i + 1
