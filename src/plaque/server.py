@@ -323,7 +323,10 @@ class NotebookHTTPServer:
                                     from .api_formatter import format_result
 
                                     output_data["result"] = format_result(
-                                        cell.result, image_dir
+                                        cell.result,
+                                        image_dir,
+                                        cell.counter,
+                                        include_base64=False,
                                     )
                                 else:
                                     output_data["result"] = None

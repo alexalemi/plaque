@@ -215,7 +215,7 @@ class TestRenderCell:
             assert 'class="output-content"' in result
 
             mock_format_code.assert_called_once_with('print("hello")')
-            mock_format_result.assert_called_once_with("hello", None)
+            mock_format_result.assert_called_once_with("hello", None, 0)
 
     def test_code_cell_with_title(self):
         """Test code cell with title metadata."""

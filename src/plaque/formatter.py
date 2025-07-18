@@ -13,15 +13,10 @@ from .cell import Cell, CellType
 from .display import to_renderable
 from .renderables import HTML, JPEG, JSON, Latex, Markdown, PNG, SVG, Text
 
-# Global counter for unique image filenames
-_image_counter = 0
 
-
-def _get_next_image_name(extension: str) -> str:
-    """Generate a unique image filename."""
-    global _image_counter
-    _image_counter += 1
-    return f"img_{_image_counter:03d}.{extension}"
+def _get_cell_image_name(cell_counter: int, extension: str) -> str:
+    """Generate a deterministic image filename based on cell execution counter."""
+    return f"cell_{cell_counter}_img.{extension}"
 
 
 def escape_html(text: str) -> str:
@@ -105,7 +100,9 @@ def format_markdown(content: str) -> str:
         return "\n".join(formatted_paragraphs)
 
 
-def format_result(result: Any, image_dir: Optional[Path] = None) -> str:
+def format_result(
+    result: Any, image_dir: Optional[Path] = None, cell_counter: Optional[int] = None
+) -> str:
     """Format cell execution result by converting it to a renderable and then to HTML."""
     if result is None:
         return ""
@@ -120,9 +117,9 @@ def format_result(result: Any, image_dir: Optional[Path] = None) -> str:
         case Text(content):
             return f'<pre class="result-output">{escape_html(content)}</pre>'
         case PNG(content):
-            if image_dir is not None:
+            if image_dir is not None and cell_counter is not None:
                 # Save to file and return file reference
-                filename = _get_next_image_name("png")
+                filename = _get_cell_image_name(cell_counter, "png")
                 filepath = image_dir / filename
                 with open(filepath, "wb") as f:
                     f.write(content)
@@ -132,9 +129,9 @@ def format_result(result: Any, image_dir: Optional[Path] = None) -> str:
                 png_b64 = base64.b64encode(content).decode()
                 return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
         case JPEG(content):
-            if image_dir is not None:
+            if image_dir is not None and cell_counter is not None:
                 # Save to file and return file reference
-                filename = _get_next_image_name("jpg")
+                filename = _get_cell_image_name(cell_counter, "jpg")
                 filepath = image_dir / filename
                 with open(filepath, "wb") as f:
                     f.write(content)
@@ -206,7 +203,7 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
         if cell.result is not None:
             html_parts.append('<div class="cell-output">')
             html_parts.append(
-                f'<div class="output-content">{format_result(cell.result, image_dir)}</div>'
+                f'<div class="output-content">{format_result(cell.result, image_dir, cell.counter)}</div>'
             )
             html_parts.append("</div>")
 

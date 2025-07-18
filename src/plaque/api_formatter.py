@@ -9,26 +9,33 @@ from .cell import Cell, CellType
 from .renderables import PNG, JPEG, SVG, HTML, JSON as JSONRenderable, Text, Markdown
 
 
-def format_result(result: Any, image_dir: Optional[Path] = None) -> Dict[str, Any]:
+def format_result(
+    result: Any,
+    image_dir: Optional[Path] = None,
+    cell_counter: Optional[int] = None,
+    include_base64: bool = False,
+) -> Dict[str, Any]:
     """Convert a cell result to a JSON-serializable format."""
     if result is None:
         return None
 
     # Handle image types
     if isinstance(result, PNG):
-        if image_dir:
+        if image_dir and cell_counter is not None:
             # Save image and return path reference
-            from .formatter import _get_next_image_name
+            from .formatter import _get_cell_image_name
 
-            filename = _get_next_image_name("png")
+            filename = _get_cell_image_name(cell_counter, "png")
             filepath = image_dir / filename
             with open(filepath, "wb") as f:
                 f.write(result.content)
-            return {
+            response = {
                 "type": "image/png",
                 "url": f"/images/{filename}",
-                "data": base64.b64encode(result.content).decode("utf-8"),
             }
+            if include_base64:
+                response["data"] = base64.b64encode(result.content).decode("utf-8")
+            return response
         else:
             return {
                 "type": "image/png",
@@ -36,18 +43,20 @@ def format_result(result: Any, image_dir: Optional[Path] = None) -> Dict[str, An
             }
 
     elif isinstance(result, JPEG):
-        if image_dir:
-            from .formatter import _get_next_image_name
+        if image_dir and cell_counter is not None:
+            from .formatter import _get_cell_image_name
 
-            filename = _get_next_image_name("jpg")
+            filename = _get_cell_image_name(cell_counter, "jpg")
             filepath = image_dir / filename
             with open(filepath, "wb") as f:
                 f.write(result.content)
-            return {
+            response = {
                 "type": "image/jpeg",
                 "url": f"/images/{filename}",
-                "data": base64.b64encode(result.content).decode("utf-8"),
             }
+            if include_base64:
+                response["data"] = base64.b64encode(result.content).decode("utf-8")
+            return response
         else:
             return {
                 "type": "image/jpeg",
@@ -89,18 +98,20 @@ def format_result(result: Any, image_dir: Optional[Path] = None) -> Dict[str, An
         png_data = buf.read()
         buf.close()
 
-        if image_dir:
-            from .formatter import _get_next_image_name
+        if image_dir and cell_counter is not None:
+            from .formatter import _get_cell_image_name
 
-            filename = _get_next_image_name("png")
+            filename = _get_cell_image_name(cell_counter, "png")
             filepath = image_dir / filename
             with open(filepath, "wb") as f:
                 f.write(png_data)
-            return {
+            response = {
                 "type": "image/png",
                 "url": f"/images/{filename}",
-                "data": base64.b64encode(png_data).decode("utf-8"),
             }
+            if include_base64:
+                response["data"] = base64.b64encode(png_data).decode("utf-8")
+            return response
         else:
             return {
                 "type": "image/png",
@@ -157,7 +168,9 @@ def cell_to_json(
 
         # Format the result
         if cell.result is not None:
-            execution["result"] = format_result(cell.result, image_dir)
+            execution["result"] = format_result(
+                cell.result, image_dir, cell.counter, include_base64=False
+            )
         else:
             execution["result"] = None
 

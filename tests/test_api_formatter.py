@@ -55,10 +55,20 @@ class TestFormatResult:
             image_dir = Path(tmpdir)
             png_data = b"\x89PNG\r\n\x1a\n"
             png = PNG(png_data)
-            result = format_result(png, image_dir)
+            result = format_result(png, image_dir, cell_counter=1)
             assert result["type"] == "image/png"
             assert "url" in result
-            assert result["url"].startswith("/images/")
+            assert result["url"] == "/images/cell_1_img.png"
+            assert "data" not in result  # No base64 by default
+
+    def test_format_png_with_base64_enabled(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_dir = Path(tmpdir)
+            png_data = b"\x89PNG\r\n\x1a\n"
+            png = PNG(png_data)
+            result = format_result(png, image_dir, cell_counter=2, include_base64=True)
+            assert result["type"] == "image/png"
+            assert result["url"] == "/images/cell_2_img.png"
             assert result["data"] == base64.b64encode(png_data).decode("utf-8")
 
     def test_format_plain_object(self):
