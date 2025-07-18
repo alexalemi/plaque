@@ -45,7 +45,7 @@ class TestFormatResult:
         png = PNG(png_data)
         result = format_result(png)
         assert result["type"] == "image/png"
-        assert result["data"] == base64.b64encode(png_data).decode("utf-8")
+        assert result["data"] == base64.standard_b64encode(png_data).decode("utf-8")
         assert "url" not in result
 
     def test_format_png_with_image_dir(self):
@@ -67,7 +67,7 @@ class TestFormatResult:
             result = format_result(png, image_dir, cell_counter=2, include_base64=True)
             assert result["type"] == "image/png"
             assert result["url"] == "/images/cell_2_img.png"
-            assert result["data"] == base64.b64encode(png_data).decode("utf-8")
+            assert result["data"] == base64.standard_b64encode(png_data).decode("utf-8")
 
     def test_format_plain_object(self):
         obj = {"some": "dict"}

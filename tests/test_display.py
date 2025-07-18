@@ -141,7 +141,7 @@ class TestMimeMethod:
         assert renderable.content == "<b>Bold text</b>"
 
     def test_mime_image_png(self):
-        test_data = base64.b64encode(b"png_data").decode()
+        test_data = base64.standard_b64encode(b"png_data").decode()
 
         class TestObject:
             def _mime_(self):
@@ -186,7 +186,7 @@ class TestIpythonReprMethods:
         assert renderable.content == b"png_bytes"
 
     def test_repr_jpeg_b64_string(self):
-        jpeg_b64 = base64.b64encode(b"jpeg_data").decode()
+        jpeg_b64 = base64.standard_b64encode(b"jpeg_data").decode()
 
         class TestObject:
             def _repr_jpeg_(self):

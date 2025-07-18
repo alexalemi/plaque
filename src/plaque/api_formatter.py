@@ -33,12 +33,14 @@ def format_result(
                 "url": f"/images/{filename}",
             }
             if include_base64:
-                response["data"] = base64.b64encode(result.content).decode("utf-8")
+                response["data"] = base64.standard_b64encode(result.content).decode(
+                    "utf-8"
+                )
             return response
         else:
             return {
                 "type": "image/png",
-                "data": base64.b64encode(result.content).decode("utf-8"),
+                "data": base64.standard_b64encode(result.content).decode("utf-8"),
             }
 
     elif isinstance(result, JPEG):
@@ -54,12 +56,14 @@ def format_result(
                 "url": f"/images/{filename}",
             }
             if include_base64:
-                response["data"] = base64.b64encode(result.content).decode("utf-8")
+                response["data"] = base64.standard_b64encode(result.content).decode(
+                    "utf-8"
+                )
             return response
         else:
             return {
                 "type": "image/jpeg",
-                "data": base64.b64encode(result.content).decode("utf-8"),
+                "data": base64.standard_b64encode(result.content).decode("utf-8"),
             }
 
     elif isinstance(result, SVG):
@@ -109,12 +113,12 @@ def format_result(
                 "url": f"/images/{filename}",
             }
             if include_base64:
-                response["data"] = base64.b64encode(png_data).decode("utf-8")
+                response["data"] = base64.standard_b64encode(png_data).decode("utf-8")
             return response
         else:
             return {
                 "type": "image/png",
-                "data": base64.b64encode(png_data).decode("utf-8"),
+                "data": base64.standard_b64encode(png_data).decode("utf-8"),
             }
 
     # Default: convert to string representation

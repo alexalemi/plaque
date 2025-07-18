@@ -126,7 +126,7 @@ def format_result(
                 return f'<div class="png-output"><img src="/images/{filename}" style="max-width: 100%; height: auto;"></div>'
             else:
                 # Use base64 data URI (default behavior)
-                png_b64 = base64.b64encode(content).decode()
+                png_b64 = base64.standard_b64encode(content).decode()
                 return f'<div class="png-output"><img src="data:image/png;base64,{png_b64}" style="max-width: 100%; height: auto;"></div>'
         case JPEG(content):
             if image_dir is not None and cell_counter is not None:
@@ -138,7 +138,7 @@ def format_result(
                 return f'<div class="jpeg-output"><img src="/images/{filename}" style="max-width: 100%; height: auto;"></div>'
             else:
                 # Use base64 data URI (default behavior)
-                jpeg_b64 = base64.b64encode(content).decode()
+                jpeg_b64 = base64.standard_b64encode(content).decode()
                 return f'<div class="jpeg-output"><img src="data:image/jpeg;base64,{jpeg_b64}" style="max-width: 100%; height: auto;"></div>'
         case SVG(content):
             return f'<div class="svg-output">{content}</div>'
