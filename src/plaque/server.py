@@ -227,8 +227,10 @@ class NotebookHTTPServer:
                         self.send_response(200)
                         self.send_header("Content-Type", content_type)
                         self.send_header(
-                            "Cache-Control", "max-age=3600"
-                        )  # Cache for 1 hour
+                            "Cache-Control", "no-cache, no-store, must-revalidate"
+                        )
+                        self.send_header("Pragma", "no-cache")
+                        self.send_header("Expires", "0")
                         self.end_headers()
 
                         with open(image_path, "rb") as f:
