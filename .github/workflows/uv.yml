@@ -20,12 +20,17 @@ jobs:
       uses: astral-sh/setup-uv@v3
       with:
         version: "latest"
+
+    - name: Install ruff
+      run: uv tool install ruff
     
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
     
     - name: Install dependencies
-      run: uv sync
+      run: | 
+        uv sync
+        uv sync --extra dev
     
     - name: Run tests
       run: uv run pytest
