@@ -11,7 +11,6 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.integration
 class TestAPIIntegration:
     """Integration test for the API with a real server."""
 
