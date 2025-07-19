@@ -58,7 +58,7 @@ class Processor:
 
         if not changed_cell_indices and len(cells) == len(self.cells):
             # No changes detected, copy over previous results
-            logger.info("No changes detected, reusing previous results")
+            logger.debug("No changes detected, reusing previous results")
             for i, cell in enumerate(cells):
                 if i < len(self.cells) and cell.is_code:
                     cell.copy_execution(self.cells[i])

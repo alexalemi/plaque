@@ -145,7 +145,7 @@ def watch(ctx, input, output, open_browser):
             html_content = process_notebook(input_path, processor)
             with open(output_path, "w") as f:
                 f.write(html_content)
-            click.echo(f"Regenerated: {output_path}")
+            logger.debug(f"Regenerated: {output_path}")
 
             if open_browser:
                 webbrowser.open(f"file://{output_path.resolve()}")

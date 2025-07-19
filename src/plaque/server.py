@@ -8,13 +8,17 @@ import os
 import webbrowser
 import time
 import json
+import logging
 from pathlib import Path
 from typing import Callable, Optional
 
 import click
 
+
 from .watcher import FileWatcher
 from .api_formatter import cell_to_json, notebook_state_to_json
+
+logger = logging.getLogger(__name__)
 
 
 class ReusableTCPServer(socketserver.TCPServer):
@@ -74,7 +78,7 @@ class NotebookHTTPServer:
                     with open(self.html_path, "w") as f:
                         f.write(html_content)
                     self.last_update = time.time()
-                    click.echo(f"Regenerated: {self.notebook_path.name}")
+                    logger.debug(f"Regenerated: {self.notebook_path.name}")
                 except Exception as e:
                     click.echo(
                         f"Error regenerating {self.notebook_path}: {e}", err=True
