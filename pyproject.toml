@@ -57,3 +57,5 @@ url = "https://test.pypi.org/simple"
 publish-url = "https://test.pypi.org/legacy/"
 explicit = true
 
+[tool.ruff.lint.per-file-ignores]
+"examples/*" = ["E402"]
