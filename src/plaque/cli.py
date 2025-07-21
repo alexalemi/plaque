@@ -35,8 +35,19 @@ def process_notebook(
     is_flag=True,
     help="Disable dependency tracking and run all cells after any change",
 )
+@click.option(
+    "--ipython",
+    is_flag=True,
+    help="Use IPython kernel for execution (enables top-level await, magic commands)",
+)
+@click.option(
+    "--kernel-timeout",
+    type=float,
+    default=30.0,
+    help="Timeout for IPython kernel operations in seconds (default: 30)",
+)
 @click.pass_context
-def main(ctx, verbose, no_dependency_tracking):
+def main(ctx, verbose, no_dependency_tracking, ipython, kernel_timeout):
     """Plaque - A local-first notebook system for Python.
 
     By default, uses AST-based parsing and dependency tracking for smart execution.
@@ -51,6 +62,8 @@ def main(ctx, verbose, no_dependency_tracking):
     ctx.obj[
         "use_dependency_tracking"
     ] = not no_dependency_tracking  # Dependency tracking is default, flag disables it
+    ctx.obj["environment_type"] = "ipython" if ipython else "python"
+    ctx.obj["kernel_timeout"] = kernel_timeout
 
 
 @main.command()
@@ -85,8 +98,14 @@ def render(ctx, input, output, open_browser):
         use_dependency_tracking = ctx.obj.get(
             "use_dependency_tracking", True
         )  # Default to True (dependency tracking)
+        environment_type = ctx.obj.get("environment_type", "python")
+        kernel_timeout = ctx.obj.get("kernel_timeout", 30.0)
 
-        processor = Processor(use_dependency_tracking=use_dependency_tracking)
+        processor = Processor(
+            use_dependency_tracking=use_dependency_tracking,
+            environment_type=environment_type,
+            kernel_timeout=kernel_timeout,
+        )
         html_content = process_notebook(input_path, processor)
 
         with open(output_path, "w") as f:
@@ -136,8 +155,14 @@ def watch(ctx, input, output, open_browser):
     use_dependency_tracking = ctx.obj.get(
         "use_dependency_tracking", True
     )  # Default to True (dependency tracking)
+    environment_type = ctx.obj.get("environment_type", "python")
+    kernel_timeout = ctx.obj.get("kernel_timeout", 30.0)
 
-    processor = Processor(use_dependency_tracking=use_dependency_tracking)
+    processor = Processor(
+        use_dependency_tracking=use_dependency_tracking,
+        environment_type=environment_type,
+        kernel_timeout=kernel_timeout,
+    )
 
     def regenerate_html(file_path):
         """Regenerate HTML when file changes."""
@@ -198,9 +223,15 @@ def serve(ctx, input, port, bind, open_browser):
     use_dependency_tracking = ctx.obj.get(
         "use_dependency_tracking", True
     )  # Default to True (dependency tracking)
+    environment_type = ctx.obj.get("environment_type", "python")
+    kernel_timeout = ctx.obj.get("kernel_timeout", 30.0)
 
     # Create a single processor instance to maintain state
-    processor = Processor(use_dependency_tracking=use_dependency_tracking)
+    processor = Processor(
+        use_dependency_tracking=use_dependency_tracking,
+        environment_type=environment_type,
+        kernel_timeout=kernel_timeout,
+    )
 
     # Create callback that accepts image_dir parameter
     def callback_with_image_dir(

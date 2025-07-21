@@ -1,7 +1,9 @@
 """Handles the core persistence logic for notebooks."""
 
+from typing import Literal
+
 from .cell import Cell, empty_code_cell
-from .environment import Environment
+from .environment import BaseEnvironment, PythonEnvironment
 from .dependency_analyzer import (
     build_dependency_graph,
     find_cells_to_rerun,
@@ -14,10 +16,60 @@ logger = logging.getLogger(__name__)
 
 
 class Processor:
-    def __init__(self, use_dependency_tracking: bool = True):
-        self.environment = Environment()
+    def __init__(
+        self,
+        use_dependency_tracking: bool = True,
+        environment_type: Literal["python", "ipython"] = "python",
+        kernel_timeout: float = 30.0,
+    ):
+        """Initialize the processor with specified environment type.
+
+        Args:
+            use_dependency_tracking: Whether to track cell dependencies
+            environment_type: Type of environment to use ("python" or "ipython")
+            kernel_timeout: Timeout for IPython kernel operations (seconds)
+        """
+        self.environment = self._create_environment(environment_type, kernel_timeout)
         self.cells: list[Cell] = []
         self.use_dependency_tracking = use_dependency_tracking
+        self.environment_type = environment_type
+
+    def _create_environment(
+        self, environment_type: Literal["python", "ipython"], kernel_timeout: float
+    ) -> BaseEnvironment:
+        """Create the appropriate environment based on type.
+
+        Args:
+            environment_type: Type of environment to create
+            kernel_timeout: Timeout for IPython kernel operations
+
+        Returns:
+            The created environment instance
+
+        Raises:
+            ImportError: If ipython is requested but not available
+        """
+        if environment_type == "ipython":
+            try:
+                from .ipython_environment import IPythonEnvironment
+
+                env = IPythonEnvironment(timeout=kernel_timeout)
+                # Start the kernel immediately
+                env.start()
+                return env
+            except ImportError as e:
+                raise ImportError(
+                    "IPython environment requires jupyter-client and ipykernel. "
+                    "Install with: pip install jupyter-client ipykernel"
+                ) from e
+        else:
+            return PythonEnvironment()
+
+    def __del__(self):
+        """Cleanup when processor is destroyed."""
+        # Stop IPython kernel if using IPython environment
+        if hasattr(self, "environment") and hasattr(self.environment, "stop"):
+            self.environment.stop()
 
     def process_cells(self, cells: list[Cell]) -> list[Cell]:
         if self.use_dependency_tracking:

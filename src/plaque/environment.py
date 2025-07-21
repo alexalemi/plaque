@@ -5,8 +5,9 @@ Represents a simple python environment with its own locals and globals."""
 import ast
 import sys
 import traceback
+from abc import ABC, abstractmethod
 from types import CodeType
-from typing import Any
+from typing import Any, Dict
 from contextlib import redirect_stdout, redirect_stderr
 from .iowrapper import NotebookStdout
 from .cell import Cell
@@ -23,11 +24,49 @@ except ImportError:
     pass  # matplotlib not installed
 
 
-class Environment:
+class BaseEnvironment(ABC):
+    """Abstract base class for execution environments.
+
+    This defines the interface that all execution backends must implement.
+    """
+
     def __init__(self):
+        self.counter = 0
+
+    @abstractmethod
+    def execute_cell(self, cell: Cell) -> Any:
+        """Execute a code cell and populate its results.
+
+        Args:
+            cell: The cell to execute
+
+        Returns:
+            The result of the cell execution, if any
+        """
+        pass
+
+    @abstractmethod
+    def get_namespace(self) -> Dict[str, Any]:
+        """Get the current namespace of variables.
+
+        Returns:
+            Dictionary mapping variable names to their values or representations
+        """
+        pass
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Reset the environment to a clean state."""
+        pass
+
+
+class PythonEnvironment(BaseEnvironment):
+    """Standard Python execution environment using exec/eval."""
+
+    def __init__(self):
+        super().__init__()
         self.locals = {"__name__": "__main__"}
         self.globals = self.locals  # Use same namespace for globals and locals
-        self.counter = 0
 
     def eval(self, source: str | CodeType):
         return builtins.eval(source, self.globals, self.locals)
@@ -40,6 +79,21 @@ class Environment:
             return builtins.compile(source, "<cell>", mode)
         except SyntaxError as e:
             return None, str(e)
+
+    def get_namespace(self) -> Dict[str, Any]:
+        """Get the current namespace of variables."""
+        # Filter out builtins and private variables
+        return {
+            k: v
+            for k, v in self.locals.items()
+            if not k.startswith("_") and k != "__builtins__"
+        }
+
+    def reset(self) -> None:
+        """Reset the environment to a clean state."""
+        self.locals = {"__name__": "__main__"}
+        self.globals = self.locals
+        self.counter = 0
 
     def execute_cell(self, cell: Cell):
         """Execute a code cell with proper error handling and rich display."""
@@ -267,3 +321,7 @@ class Environment:
         else:
             # Fallback to simple error message
             return f"{error_type}: {error_msg}"
+
+
+# Legacy alias for backward compatibility
+Environment = PythonEnvironment

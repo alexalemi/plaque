@@ -34,6 +34,12 @@ Repository = "https://github.com/alexalemi/plaque"
 Issues = "https://github.com/alexalemi/plaque/issues"
 Documentation = "https://github.com/alexalemi/plaque#readme"
 
+[project.optional-dependencies]
+ipython = [
+    "jupyter-client>=8.0.0",
+    "ipykernel>=6.0.0",
+]
+
 [project.scripts]
 plaque = "plaque:main"
 
@@ -59,3 +65,4 @@ explicit = true
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*" = ["E402"]
+"tests/*" = ["E402"]
