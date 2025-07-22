@@ -13,8 +13,8 @@ class TestEnvironmentBasics:
     def test_environment_initialization(self):
         """Test environment initializes correctly."""
         env = Environment()
-        assert env.locals == {"__name__": "__main__"}
-        assert env.globals == env.locals  # globals and locals should be the same
+        assert env.shell.user_ns["__name__"] == "__main__"
+        assert env.counter == 0
 
     def test_simple_expression(self):
         """Test executing simple expression."""
@@ -37,7 +37,7 @@ class TestEnvironmentBasics:
         assert result is None
         assert cell.result is None
         assert cell.error is None
-        assert env.locals.get("x") == 42
+        assert env.shell.user_ns.get("x") == 42
 
     def test_variable_persistence(self):
         """Test that variables persist between cell executions."""
@@ -56,8 +56,8 @@ class TestEnvironmentBasics:
         result = env.execute_cell(cell3)
 
         assert result == 20
-        assert env.locals.get("x") == 10
-        assert env.locals.get("y") == 20
+        assert env.shell.user_ns.get("x") == 10
+        assert env.shell.user_ns.get("y") == 20
 
     def test_function_definition_and_call(self):
         """Test defining and calling functions."""
@@ -79,7 +79,7 @@ def square(n):
         result = env.execute_cell(cell2)
 
         assert result == 25
-        assert callable(env.locals.get("square"))
+        assert callable(env.shell.user_ns.get("square"))
 
     def test_multiple_statements_with_expression(self):
         """Test cell with multiple statements ending in expression."""
@@ -98,8 +98,8 @@ x + y
 
         assert result == 15
         assert cell.result == 15
-        assert env.locals.get("x") == 5
-        assert env.locals.get("y") == 10
+        assert env.shell.user_ns.get("x") == 5
+        assert env.shell.user_ns.get("y") == 10
 
     def test_empty_cell(self):
         """Test executing empty cell."""
@@ -370,7 +370,7 @@ result + 1  # This should be treated as the expression to evaluate
 
         assert result == 5.0  # sqrt(16) + 1 = 4 + 1 = 5
         assert cell.result == 5.0
-        assert env.locals.get("result") == 4.0
+        assert env.shell.user_ns.get("result") == 4.0
 
     def test_multiline_expression(self):
         """Test multiline expression at end of cell."""
@@ -428,7 +428,7 @@ class TestMemoryAndState:
         cell2 = Cell(CellType.CODE, "x", 2)
         env2.execute_cell(cell2)
 
-        assert env1.locals.get("x") == 100
+        assert env1.shell.user_ns.get("x") == 100
         assert cell2.error is not None  # Should be NameError in env2
         assert "NameError" in cell2.error
 
@@ -450,7 +450,7 @@ class TestMemoryAndState:
             results.append(result)
 
         assert results == [None, None, None, 10]  # Only last cell returns value
-        assert env.locals.get("total") == 10
+        assert env.shell.user_ns.get("total") == 10
 
     def test_import_persistence(self):
         """Test that imports persist between cells."""
@@ -471,9 +471,9 @@ class TestMemoryAndState:
         assert cell1.error is None
         assert cell2.error is None
         assert cell3.error is None
-        assert env.locals.get("result") == 4.0
+        assert env.shell.user_ns.get("result") == 4.0
         assert result == 3.141592653589793  # math.pi
-        assert "math" in env.locals
+        assert "math" in env.shell.user_ns
 
 
 class TestOutputCapture:

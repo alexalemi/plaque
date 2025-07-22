@@ -1,18 +1,19 @@
 """The main execution environment.
 
-Represents a simple python environment with its own locals and globals."""
+Represents an IPython-based execution environment with rich features."""
 
-import ast
-import sys
 import traceback
 from types import CodeType
 from typing import Any
-from contextlib import redirect_stdout, redirect_stderr
-from .iowrapper import NotebookStdout
 from .cell import Cell
 from .display import capture_matplotlib_plots
 
 import builtins
+
+# Import IPython components
+from IPython.core.interactiveshell import InteractiveShell
+from IPython.utils.capture import capture_output
+from traitlets.config import Config
 
 # Set matplotlib backend before any other matplotlib imports
 try:
@@ -25,24 +26,51 @@ except ImportError:
 
 class Environment:
     def __init__(self):
-        self.locals = {"__name__": "__main__"}
-        self.globals = self.locals  # Use same namespace for globals and locals
+        # Configure IPython for notebook-like behavior
+        config = Config()
+        config.InteractiveShell.ast_node_interactivity = "last_expr"
+        config.InteractiveShell.show_rewritten_input = False
+        config.InteractiveShell.quiet = True
+        config.PlainTextFormatter.max_width = 120
+
+        # Create IPython shell instance
+        self.shell = InteractiveShell.instance(config=config)
+
+        # Enable async support for top-level await
+        self.shell.autoawait = True
+
+        # Set up namespace - IPython manages its own namespace
+        self.shell.user_ns["__name__"] = "__main__"
+
         self.counter = 0
 
     def eval(self, source: str | CodeType):
-        return builtins.eval(source, self.globals, self.locals)
+        """Evaluate code using IPython shell."""
+        if isinstance(source, str):
+            return self.shell.ev(source)
+        else:
+            # For compiled code objects, fall back to built-in eval
+            return builtins.eval(source, self.shell.user_global_ns, self.shell.user_ns)
 
     def exec(self, source: str | CodeType):
-        return builtins.exec(source, self.globals, self.locals)
+        """Execute code using IPython shell."""
+        if isinstance(source, str):
+            return self.shell.ex(source)
+        else:
+            # For compiled code objects, fall back to built-in exec
+            return builtins.exec(source, self.shell.user_global_ns, self.shell.user_ns)
 
     def compile(self, source, mode="exec"):
+        """Compile code - delegate to IPython's compilation."""
         try:
-            return builtins.compile(source, "<cell>", mode)
+            # Use IPython's compile to handle magic commands and other special syntax
+            compiled = self.shell.compile(source, "<cell>", mode)
+            return compiled
         except SyntaxError as e:
             return None, str(e)
 
     def execute_cell(self, cell: Cell):
-        """Execute a code cell with proper error handling and rich display."""
+        """Execute a code cell using IPython with proper error handling and rich display."""
         assert cell.is_code, "Can only execute code cells."
 
         # Clear previous results
@@ -53,111 +81,98 @@ class Environment:
         cell.counter = self.counter
         self.counter += 1
 
-        # Create buffers for output capture
-        stdout_buffer = NotebookStdout(sys.stdout)
-        stderr_buffer = NotebookStdout(sys.stderr)
-
         try:
-            # Parse the cell content
-            try:
-                tree = ast.parse(cell.content)
-                stmts = list(ast.iter_child_nodes(tree))
-            except SyntaxError as e:
-                # Handle syntax errors with better formatting
-                cell.error = self._format_syntax_error(e, cell.content)
-                return None
+            # Use IPython's capture_output to capture stdout/stderr
+            with capture_output() as captured:
+                # Also capture matplotlib plots
+                with capture_matplotlib_plots() as figure_capture:
+                    try:
+                        # Use IPython's run_cell method which handles magic commands,
+                        # async/await, and expression vs statement detection automatically
+                        result = self.shell.run_cell(
+                            cell.content, store_history=True, silent=False
+                        )
 
-            if not stmts:
-                return None
+                        # Extract the execution result
+                        if result.result is not None:
+                            cell.result = result.result
+                        elif result.error_before_exec:
+                            # Syntax or compilation error
+                            cell.error = str(result.error_before_exec)
+                            return None
+                        elif result.error_in_exec:
+                            # Runtime error
+                            cell.error = self._format_ipython_error(
+                                result.error_in_exec
+                            )
+                            return None
 
-            # Capture matplotlib plots and output during execution
-            result = None
-            is_expression_cell = isinstance(stmts[-1], ast.Expr)
+                    except Exception as e:
+                        # Clean up figures in case of exception
+                        figure_capture.close_figures()
+                        cell.error = self._format_runtime_error(e, cell.content)
+                        return None
 
-            with capture_matplotlib_plots() as figure_capture:
-                try:
-                    if is_expression_cell:
-                        # Expression cell
-                        with (
-                            redirect_stdout(stdout_buffer),
-                            redirect_stderr(stderr_buffer),
-                        ):
-                            # The last statement is an expression - execute preceding statements
-                            if len(stmts) > 1:
-                                exec_code = self.compile(
-                                    ast.Module(body=stmts[:-1], type_ignores=[]),
-                                    "exec",  # type: ignore
-                                )
-                                if isinstance(exec_code, tuple):  # Error occurred
-                                    cell.error = exec_code[1]
-                                    return None
-                                self.exec(exec_code)
+            # Capture output from IPython
+            cell.stdout = captured.stdout
+            cell.stderr = captured.stderr
 
-                            # Evaluate the last expression
-                            eval_code = self.compile(ast.unparse(stmts[-1]), "eval")
-                            if isinstance(eval_code, tuple):  # Error occurred
-                                cell.error = eval_code[1]
-                                return None
-
-                            result = self.eval(eval_code)
-
-                            # Capture any output
-                            cell.stdout = stdout_buffer.getvalue()
-                            cell.stderr = stderr_buffer.getvalue()
-
-                    else:
-                        # Statement cell
-                        with (
-                            redirect_stdout(stdout_buffer),
-                            redirect_stderr(stderr_buffer),
-                        ):
-                            code_obj = self.compile(cell.content, "exec")
-                            if isinstance(code_obj, tuple):  # Error occurred
-                                cell.error = code_obj[1]
-                                return None
-
-                            self.exec(code_obj)
-
-                            # Capture any output
-                            cell.stdout = stdout_buffer.getvalue()
-                            cell.stderr = stderr_buffer.getvalue()
-
-                except Exception as inner_e:
-                    # Clean up figures in case of exception
-                    figure_capture.close_figures()
-                    raise inner_e
-
-            # Use captured figures from the context manager (after context manager is done)
+            # Handle matplotlib figures
             if figure_capture.figures:
-                # Display the first captured figure
+                # If we have matplotlib figures, prioritize the first one
                 cell.result = figure_capture.figures[0]
-            elif (
-                is_expression_cell
-                and result is not None
-                and self._is_matplotlib_return_value(result)
+            elif cell.result is not None and self._is_matplotlib_return_value(
+                cell.result
             ):
-                # If result is a matplotlib return value but no figures captured,
-                # suppress it (don't display matplotlib internal objects)
+                # Suppress matplotlib return values if no figures were captured
                 cell.result = None
-            elif is_expression_cell and result is not None:
-                cell.result = result
 
             # Clean up matplotlib figures after processing
             figure_capture.close_figures()
 
-            return result
+            return cell.result
 
         except Exception as e:
-            # Capture any output before the error
-            cell.stdout = stdout_buffer.getvalue()
-            cell.stderr = stderr_buffer.getvalue()
-            # Capture runtime errors with better formatting
+            # Fallback error handling
             cell.error = self._format_runtime_error(e, cell.content)
             return None
-        finally:
-            # Close buffers
-            stdout_buffer.close()
-            stderr_buffer.close()
+
+    def _format_ipython_error(self, error_in_exec) -> str:
+        """Format an IPython execution error with cleaned traceback."""
+        if hasattr(error_in_exec, "etype") and hasattr(error_in_exec, "evalue"):
+            # IPython ExecutionResult error format
+            error_type = (
+                error_in_exec.etype.__name__ if error_in_exec.etype else "Error"
+            )
+            error_msg = (
+                str(error_in_exec.evalue) if error_in_exec.evalue else "Unknown error"
+            )
+
+            # Use IPython's traceback formatting
+            if hasattr(error_in_exec, "traceback") and error_in_exec.traceback:
+                # Join traceback lines and clean them
+                tb_lines = error_in_exec.traceback
+                cleaned_lines = []
+
+                for line in tb_lines:
+                    # Filter out internal IPython and plaque frames
+                    if not any(
+                        internal in line
+                        for internal in [
+                            "site-packages/IPython/",
+                            "plaque/environment.py",
+                            "plaque/processor.py",
+                        ]
+                    ):
+                        cleaned_lines.append(line.rstrip())
+
+                if cleaned_lines:
+                    return "\n".join([f"{error_type}: {error_msg}", ""] + cleaned_lines)
+
+            return f"{error_type}: {error_msg}"
+        else:
+            # Fallback to standard formatting
+            return self._format_runtime_error(error_in_exec, "")
 
     def _format_syntax_error(self, error: SyntaxError, source: str) -> str:
         """Format a syntax error with context and highlighting."""

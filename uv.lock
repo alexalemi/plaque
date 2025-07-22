@@ -609,10 +609,11 @@ wheels = [
 
 [[package]]
 name = "plaque"
-version = "0.2.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "ipython" },
     { name = "markdown" },
     { name = "pygments" },
     { name = "watchdog" },
@@ -620,7 +621,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "ipython" },
     { name = "jinja2" },
     { name = "matplotlib" },
     { name = "pandas" },
@@ -631,6 +631,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ipython", specifier = ">=9.2.0" },
     { name = "markdown", specifier = ">=3.0.0" },
     { name = "pygments", specifier = ">=2.0.0" },
     { name = "watchdog", specifier = ">=6.0.0" },
@@ -638,7 +639,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ipython", specifier = ">=9.2.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "pandas", specifier = ">=2.3.0" },
