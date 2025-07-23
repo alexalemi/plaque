@@ -1,6 +1,6 @@
 """The main execution environment.
 
-Represents a simple python environment with its own locals and globals."""
+Supports both legacy simple python environment and new IPython-based environment."""
 
 import ast
 import sys
@@ -20,7 +20,240 @@ try:
 
     matplotlib.use("Agg")  # Use non-interactive backend to prevent segfaults
 except ImportError:
-    pass  # matplotlib not installed
+    matplotlib = None
+
+# Import IPython components
+try:
+    from IPython.core.interactiveshell import InteractiveShell
+    from IPython.core.displayhook import DisplayHook
+    # from IPython.utils.capture import capture_output
+    # import IPython.core.magic_arguments as magic_arguments
+
+    IPYTHON_AVAILABLE = True
+except ImportError:
+    IPYTHON_AVAILABLE = False
+
+
+class PlaqueDisplayHook(DisplayHook):
+    """Custom DisplayHook that integrates with plaque's Cell structure."""
+
+    def __init__(self, shell, current_cell=None):
+        super().__init__(shell)
+        self.current_cell = current_cell
+
+    def set_current_cell(self, cell):
+        """Set the current cell for result storage."""
+        self.current_cell = cell
+
+    def write_output_prompt(self):
+        """Override to suppress 'Out[n]:' prefixes."""
+        pass  # Don't write any output prompt
+
+    def compute_format_data(self, result):
+        """Compute format data using IPython's formatters."""
+        # Store the original result in the cell
+        if self.current_cell is not None:
+            self.current_cell.result = result
+
+        # Call parent to get formatted data
+        return super().compute_format_data(result)
+
+    def write_format_data(self, format_dict, md_dict=None):
+        """Store formatted data in the current cell instead of printing."""
+        # The result is already stored in compute_format_data
+        # We could enhance this to store formatted representations too
+        pass
+
+    def finish_displayhook(self):
+        """Override to manage execution counter sync."""
+        super().finish_displayhook()
+        if self.current_cell is not None:
+            self.current_cell.counter = self.shell.execution_count
+
+
+class IPythonEnvironment:
+    """IPython-based execution environment with full IPython feature support."""
+
+    def __init__(self):
+        if not IPYTHON_AVAILABLE:
+            raise ImportError("IPython is required for IPythonEnvironment")
+
+        # Create IPython shell instance
+        self.shell = InteractiveShell.instance()
+
+        # Configure the shell
+        self._configure_shell()
+
+        # Set up custom display hook
+        self.display_hook = PlaqueDisplayHook(self.shell)
+        self.shell.displayhook = self.display_hook
+
+        # Store reference to enable counter access
+        self._execution_count = 0
+
+    def _configure_shell(self):
+        """Configure IPython shell for notebook use."""
+        # Enable matplotlib inline backend
+        if matplotlib:
+            try:
+                self.shell.enable_matplotlib("inline")
+            except NotImplementedError:
+                # Fallback: configure matplotlib manually for non-GUI environment
+                import matplotlib.pyplot as plt
+
+                plt.ioff()  # Turn off interactive mode
+                # The backend is already set to Agg in the imports
+
+        # Configure shell settings
+        self.shell.ast_node_interactivity = "last_expr_or_assign"
+        self.shell.autoindent = False
+
+        # Set up custom pager hook for help output
+        # Note: Pager customization is complex and version-dependent
+        # For now, we'll keep the default pager behavior
+        # TODO: Implement custom pager hook when needed
+
+    @property
+    def counter(self):
+        """Get current execution counter."""
+        return self.shell.execution_count
+
+    @property
+    def locals(self):
+        """Access to local namespace (same as globals in IPython)."""
+        return self.shell.user_ns
+
+    @property
+    def globals(self):
+        """Access to global namespace."""
+        return self.shell.user_ns
+
+    def execute_cell(self, cell: Cell):
+        """Execute a code cell using IPython's run_cell."""
+        assert cell.is_code, "Can only execute code cells."
+
+        # Clear previous results
+        cell.result = None
+        cell.error = None
+        cell.stdout = ""
+        cell.stderr = ""
+
+        # Set current cell in display hook
+        self.display_hook.set_current_cell(cell)
+
+        try:
+            # Capture stdout/stderr manually to avoid interfering with display hooks
+            import io
+            from contextlib import redirect_stdout, redirect_stderr
+
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                # Execute the cell using IPython
+                result = self.shell.run_cell(
+                    cell.content, store_history=True, silent=False
+                )
+
+            # Store captured output
+            cell.stdout = stdout_buffer.getvalue()
+            cell.stderr = stderr_buffer.getvalue()
+
+            # Handle execution result
+            if result.error_before_exec:
+                cell.error = str(result.error_before_exec)
+            elif result.error_in_exec:
+                cell.error = self._format_exception(result.error_in_exec)
+            else:
+                # If no error, check if we have a result
+                # In IPython, expression results are stored in the user namespace as '_'
+                if cell.result is None:
+                    # Get the result from IPython's user namespace '_'
+                    cell.result = self.shell.user_ns.get("_", None)
+
+            # Update counter
+            cell.counter = self.shell.execution_count
+
+            return cell.result
+
+        except Exception as e:
+            cell.error = self._format_exception(e)
+            return None
+        finally:
+            # Clear current cell reference
+            self.display_hook.set_current_cell(None)
+
+    def _format_exception(self, exc):
+        """Format exception for display in notebook."""
+        # Use IPython's exception formatting if available
+        if hasattr(self.shell, "showtraceback"):
+            # Capture the formatted traceback
+            import io
+            from contextlib import redirect_stderr
+
+            error_buffer = io.StringIO()
+            with redirect_stderr(error_buffer):
+                self.shell.showtraceback()
+
+            return error_buffer.getvalue().strip()
+        else:
+            # Fallback to basic formatting
+            return f"{type(exc).__name__}: {exc}"
+
+    async def execute_cell_async(self, cell: Cell):
+        """Execute a code cell asynchronously using IPython's run_cell_async."""
+        assert cell.is_code, "Can only execute code cells."
+
+        # Clear previous results
+        cell.result = None
+        cell.error = None
+        cell.stdout = ""
+        cell.stderr = ""
+
+        # Set current cell in display hook
+        self.display_hook.set_current_cell(cell)
+
+        try:
+            # Capture stdout/stderr manually to avoid interfering with display hooks
+            import io
+            from contextlib import redirect_stdout, redirect_stderr
+
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                # Execute the cell using IPython's async runner
+                result = await self.shell.run_cell_async(
+                    cell.content, store_history=True, silent=False
+                )
+
+            # Store captured output
+            cell.stdout = stdout_buffer.getvalue()
+            cell.stderr = stderr_buffer.getvalue()
+
+            # Handle execution result
+            if result.error_before_exec:
+                cell.error = str(result.error_before_exec)
+            elif result.error_in_exec:
+                cell.error = self._format_exception(result.error_in_exec)
+            else:
+                # If no error, check if we have a result
+                # In IPython, expression results are stored in the user namespace as '_'
+                if cell.result is None:
+                    # Get the result from IPython's user namespace '_'
+                    cell.result = self.shell.user_ns.get("_", None)
+
+            # Update counter
+            cell.counter = self.shell.execution_count
+
+            return cell.result
+
+        except Exception as e:
+            cell.error = self._format_exception(e)
+            return None
+        finally:
+            # Clear current cell reference
+            self.display_hook.set_current_cell(None)
 
 
 class Environment:
@@ -267,3 +500,17 @@ class Environment:
         else:
             # Fallback to simple error message
             return f"{error_type}: {error_msg}"
+
+
+# Factory function to create the appropriate environment
+def create_environment(use_ipython=True):
+    """Create an execution environment.
+
+    Args:
+        use_ipython: If True and IPython is available, use IPythonEnvironment.
+                    Otherwise, use legacy Environment.
+    """
+    if use_ipython and IPYTHON_AVAILABLE:
+        return IPythonEnvironment()
+    else:
+        return Environment()

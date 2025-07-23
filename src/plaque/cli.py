@@ -35,8 +35,13 @@ def process_notebook(
     is_flag=True,
     help="Disable dependency tracking and run all cells after any change",
 )
+@click.option(
+    "--no-ipython",
+    is_flag=True,
+    help="Use legacy environment instead of IPython (disables async/await and magics)",
+)
 @click.pass_context
-def main(ctx, verbose, no_dependency_tracking):
+def main(ctx, verbose, no_dependency_tracking, no_ipython):
     """Plaque - A local-first notebook system for Python.
 
     By default, uses AST-based parsing and dependency tracking for smart execution.
@@ -51,6 +56,7 @@ def main(ctx, verbose, no_dependency_tracking):
     ctx.obj[
         "use_dependency_tracking"
     ] = not no_dependency_tracking  # Dependency tracking is default, flag disables it
+    ctx.obj["use_ipython"] = not no_ipython  # IPython is default, flag disables it
 
 
 @main.command()
@@ -85,8 +91,11 @@ def render(ctx, input, output, open_browser):
         use_dependency_tracking = ctx.obj.get(
             "use_dependency_tracking", True
         )  # Default to True (dependency tracking)
+        use_ipython = ctx.obj.get("use_ipython", True)  # Default to True (IPython)
 
-        processor = Processor(use_dependency_tracking=use_dependency_tracking)
+        processor = Processor(
+            use_dependency_tracking=use_dependency_tracking, use_ipython=use_ipython
+        )
         html_content = process_notebook(input_path, processor)
 
         with open(output_path, "w") as f:
@@ -136,8 +145,11 @@ def watch(ctx, input, output, open_browser):
     use_dependency_tracking = ctx.obj.get(
         "use_dependency_tracking", True
     )  # Default to True (dependency tracking)
+    use_ipython = ctx.obj.get("use_ipython", True)  # Default to True (IPython)
 
-    processor = Processor(use_dependency_tracking=use_dependency_tracking)
+    processor = Processor(
+        use_dependency_tracking=use_dependency_tracking, use_ipython=use_ipython
+    )
 
     def regenerate_html(file_path):
         """Regenerate HTML when file changes."""
@@ -198,9 +210,12 @@ def serve(ctx, input, port, bind, open_browser):
     use_dependency_tracking = ctx.obj.get(
         "use_dependency_tracking", True
     )  # Default to True (dependency tracking)
+    use_ipython = ctx.obj.get("use_ipython", True)  # Default to True (IPython)
 
     # Create a single processor instance to maintain state
-    processor = Processor(use_dependency_tracking=use_dependency_tracking)
+    processor = Processor(
+        use_dependency_tracking=use_dependency_tracking, use_ipython=use_ipython
+    )
 
     # Create callback that accepts image_dir parameter
     def callback_with_image_dir(

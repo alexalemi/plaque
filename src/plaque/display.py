@@ -1,4 +1,8 @@
-"""Rich display support using marimo-style method resolution."""
+"""Rich display support using marimo-style method resolution.
+
+NOTE: This module is primarily for legacy Environment support.
+The new IPythonEnvironment uses IPython's built-in display system instead.
+"""
 
 import io
 import base64
@@ -39,6 +43,10 @@ Renderable = HTML | Markdown | Text | PNG | JPEG | SVG | Latex | JSON
 def to_renderable(obj: Any, recursion_depth: int = 0) -> Renderable:
     """
     Convert an object to a renderable data class.
+
+    NOTE: This function is for legacy Environment support only.
+    IPythonEnvironment uses IPython's built-in display formatters instead.
+
     Resolution order:
     1. Check for _display_()
     2. Check for _mime_()
@@ -198,7 +206,11 @@ class _FigureCapture:
 
 @contextmanager
 def capture_matplotlib_plots():
-    """Context manager to capture matplotlib plots created during execution."""
+    """Context manager to capture matplotlib plots created during execution.
+
+    NOTE: This is for legacy Environment support only.
+    IPythonEnvironment uses IPython's built-in matplotlib integration instead.
+    """
     if not matplotlib:
         # Return an empty capture object when matplotlib is not available
         empty_capture = _FigureCapture()

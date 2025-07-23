@@ -1,7 +1,7 @@
 """Handles the core persistence logic for notebooks."""
 
 from .cell import Cell, empty_code_cell
-from .environment import Environment
+from .environment import create_environment
 from .dependency_analyzer import (
     build_dependency_graph,
     find_cells_to_rerun,
@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class Processor:
-    def __init__(self, use_dependency_tracking: bool = True):
-        self.environment = Environment()
+    def __init__(self, use_dependency_tracking: bool = True, use_ipython: bool = True):
+        self.environment = create_environment(use_ipython=use_ipython)
         self.cells: list[Cell] = []
         self.use_dependency_tracking = use_dependency_tracking
 
