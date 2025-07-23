@@ -26,8 +26,8 @@ except ImportError:
 try:
     from IPython.core.interactiveshell import InteractiveShell
     from IPython.core.displayhook import DisplayHook
-    # from IPython.utils.capture import capture_output
-    # import IPython.core.magic_arguments as magic_arguments
+    from IPython.utils.capture import capture_output
+    import IPython.core.magic_arguments as magic_arguments
 
     IPYTHON_AVAILABLE = True
 except ImportError:
@@ -51,11 +51,8 @@ class PlaqueDisplayHook(DisplayHook):
 
     def compute_format_data(self, result):
         """Compute format data using IPython's formatters."""
-        # Store the original result in the cell
-        if self.current_cell is not None:
-            self.current_cell.result = result
-
-        # Call parent to get formatted data
+        # We don't need to store the result here since we get it from ExecutionResult
+        # Just let IPython handle the formatting
         return super().compute_format_data(result)
 
     def write_format_data(self, format_dict, md_dict=None):
@@ -142,22 +139,23 @@ class IPythonEnvironment:
         self.display_hook.set_current_cell(cell)
 
         try:
-            # Capture stdout/stderr manually to avoid interfering with display hooks
-            import io
-            from contextlib import redirect_stdout, redirect_stderr
-
-            stdout_buffer = io.StringIO()
-            stderr_buffer = io.StringIO()
-
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                # Execute the cell using IPython
+            # Use IPython's built-in output capture
+            with capture_output() as captured:
+                # Execute the cell using IPython (non-silent to get proper results)
                 result = self.shell.run_cell(
                     cell.content, store_history=True, silent=False
                 )
 
-            # Store captured output
-            cell.stdout = stdout_buffer.getvalue()
-            cell.stderr = stderr_buffer.getvalue()
+            # Store captured output, filtering out the Out[n]: prompt
+            raw_stdout = captured.stdout
+            # Remove "Out[n]: " pattern from the beginning of lines
+            import re
+
+            filtered_stdout = re.sub(
+                r"^Out\[\d+\]: ", "", raw_stdout, flags=re.MULTILINE
+            )
+            cell.stdout = filtered_stdout
+            cell.stderr = captured.stderr
 
             # Handle execution result
             if result.error_before_exec:
@@ -165,11 +163,8 @@ class IPythonEnvironment:
             elif result.error_in_exec:
                 cell.error = self._format_exception(result.error_in_exec)
             else:
-                # If no error, check if we have a result
-                # In IPython, expression results are stored in the user namespace as '_'
-                if cell.result is None:
-                    # Get the result from IPython's user namespace '_'
-                    cell.result = self.shell.user_ns.get("_", None)
+                # Get the result from the user namespace (populated by displayhook)
+                cell.result = self.shell.user_ns.get("_", None)
 
             # Update counter
             cell.counter = self.shell.execution_count
@@ -214,22 +209,23 @@ class IPythonEnvironment:
         self.display_hook.set_current_cell(cell)
 
         try:
-            # Capture stdout/stderr manually to avoid interfering with display hooks
-            import io
-            from contextlib import redirect_stdout, redirect_stderr
-
-            stdout_buffer = io.StringIO()
-            stderr_buffer = io.StringIO()
-
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                # Execute the cell using IPython's async runner
+            # Use IPython's built-in output capture
+            with capture_output() as captured:
+                # Execute the cell using IPython's async runner (non-silent to get proper results)
                 result = await self.shell.run_cell_async(
                     cell.content, store_history=True, silent=False
                 )
 
-            # Store captured output
-            cell.stdout = stdout_buffer.getvalue()
-            cell.stderr = stderr_buffer.getvalue()
+            # Store captured output, filtering out the Out[n]: prompt
+            raw_stdout = captured.stdout
+            # Remove "Out[n]: " pattern from the beginning of lines
+            import re
+
+            filtered_stdout = re.sub(
+                r"^Out\[\d+\]: ", "", raw_stdout, flags=re.MULTILINE
+            )
+            cell.stdout = filtered_stdout
+            cell.stderr = captured.stderr
 
             # Handle execution result
             if result.error_before_exec:
@@ -237,11 +233,8 @@ class IPythonEnvironment:
             elif result.error_in_exec:
                 cell.error = self._format_exception(result.error_in_exec)
             else:
-                # If no error, check if we have a result
-                # In IPython, expression results are stored in the user namespace as '_'
-                if cell.result is None:
-                    # Get the result from IPython's user namespace '_'
-                    cell.result = self.shell.user_ns.get("_", None)
+                # Get the result from the user namespace (populated by displayhook)
+                cell.result = self.shell.user_ns.get("_", None)
 
             # Update counter
             cell.counter = self.shell.execution_count
