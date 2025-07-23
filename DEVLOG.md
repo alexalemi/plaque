@@ -13,6 +13,14 @@
  - [ ] Add other mime types (pdf, video)
 
 
+## 2025-07-23
+
+Working on switching over to ipython backend in the ipython3 branch.  Its easy to run cells
+but I'm having trouble getting the displayhooks and capturing of stdout and stderr to work right.
+It seems like internally, ipython has a way to control both display hooks and what they call a 
+display publisher.  That is basically what I need to do, and I should learn how it works
+and adapt it to plaque.
+
 ## 2025-07-18
 
 Added a `gettting-started.py` example.

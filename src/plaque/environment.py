@@ -27,7 +27,6 @@ try:
     from IPython.core.interactiveshell import InteractiveShell
     from IPython.core.displayhook import DisplayHook
     from IPython.utils.capture import capture_output
-    import IPython.core.magic_arguments as magic_arguments
 
     IPYTHON_AVAILABLE = True
 except ImportError:
@@ -37,17 +36,13 @@ except ImportError:
 class PlaqueDisplayHook(DisplayHook):
     """Custom DisplayHook that integrates with plaque's Cell structure."""
 
-    def __init__(self, shell, current_cell=None):
-        super().__init__(shell)
-        self.current_cell = current_cell
-
-    def set_current_cell(self, cell):
-        """Set the current cell for result storage."""
-        self.current_cell = cell
+    def __init__(self, shell=None, **kwargs):
+        super().__init__(shell=shell, **kwargs)
 
     def write_output_prompt(self):
         """Override to suppress 'Out[n]:' prefixes."""
         pass  # Don't write any output prompt
+        return "BLAH:"
 
     def compute_format_data(self, result):
         """Compute format data using IPython's formatters."""
@@ -64,9 +59,6 @@ class PlaqueDisplayHook(DisplayHook):
     def finish_displayhook(self):
         """Override to manage execution counter sync."""
         super().finish_displayhook()
-        if self.current_cell is not None:
-            self.current_cell.counter = self.shell.execution_count
-
 
 class IPythonEnvironment:
     """IPython-based execution environment with full IPython feature support."""
@@ -76,14 +68,10 @@ class IPythonEnvironment:
             raise ImportError("IPython is required for IPythonEnvironment")
 
         # Create IPython shell instance
-        self.shell = InteractiveShell.instance()
+        self.shell = InteractiveShell()
 
         # Configure the shell
         self._configure_shell()
-
-        # Set up custom display hook
-        self.display_hook = PlaqueDisplayHook(self.shell)
-        self.shell.displayhook = self.display_hook
 
         # Store reference to enable counter access
         self._execution_count = 0
@@ -104,6 +92,8 @@ class IPythonEnvironment:
         # Configure shell settings
         self.shell.ast_node_interactivity = "last_expr_or_assign"
         self.shell.autoindent = False
+        self.shell.displayhook_class = PlaqueDisplayHook
+        self.shell.init_displayhook()
 
         # Set up custom pager hook for help output
         # Note: Pager customization is complex and version-dependent
@@ -114,16 +104,6 @@ class IPythonEnvironment:
     def counter(self):
         """Get current execution counter."""
         return self.shell.execution_count
-
-    @property
-    def locals(self):
-        """Access to local namespace (same as globals in IPython)."""
-        return self.shell.user_ns
-
-    @property
-    def globals(self):
-        """Access to global namespace."""
-        return self.shell.user_ns
 
     def execute_cell(self, cell: Cell):
         """Execute a code cell using IPython's run_cell."""
@@ -136,47 +116,48 @@ class IPythonEnvironment:
         cell.stderr = ""
 
         # Set current cell in display hook
-        self.display_hook.set_current_cell(cell)
+        # self.display_hook.set_current_cell(cell)
+
+        # Create buffers for output capture
+        stdout_buffer = NotebookStdout(sys.stdout)
+        stderr_buffer = NotebookStdout(sys.stderr)
 
         try:
-            # Use IPython's built-in output capture
-            with capture_output() as captured:
+            with (
+                redirect_stdout(stdout_buffer),
+                redirect_stderr(stderr_buffer),
+            ):
                 # Execute the cell using IPython (non-silent to get proper results)
                 result = self.shell.run_cell(
-                    cell.content, store_history=True, silent=False
+                    cell.content, store_history=False, silent=False, cell_id=id(cell),
                 )
 
-            # Store captured output, filtering out the Out[n]: prompt
-            raw_stdout = captured.stdout
-            # Remove "Out[n]: " pattern from the beginning of lines
-            import re
+                # Capture any output
+                cell.stdout = stdout_buffer.getvalue()
+                cell.stderr = stderr_buffer.getvalue()
 
-            filtered_stdout = re.sub(
-                r"^Out\[\d+\]: ", "", raw_stdout, flags=re.MULTILINE
-            )
-            cell.stdout = filtered_stdout
-            cell.stderr = captured.stderr
+                # Handle execution result
+                if result.error_before_exec:
+                    cell.error = str(result.error_before_exec)
+                elif result.error_in_exec:
+                    cell.error = self._format_exception(result.error_in_exec)
+                else:
+                    # Get the result from the user namespace (populated by displayhook)
+                    # cell.result = self.shell.user_ns.get("_", None)
+                    cell.result = result.result
 
-            # Handle execution result
-            if result.error_before_exec:
-                cell.error = str(result.error_before_exec)
-            elif result.error_in_exec:
-                cell.error = self._format_exception(result.error_in_exec)
-            else:
-                # Get the result from the user namespace (populated by displayhook)
-                cell.result = self.shell.user_ns.get("_", None)
+                # Update counter
+                cell.counter = self.shell.execution_count
 
-            # Update counter
-            cell.counter = self.shell.execution_count
-
-            return cell.result
+                return cell.result
 
         except Exception as e:
             cell.error = self._format_exception(e)
             return None
         finally:
             # Clear current cell reference
-            self.display_hook.set_current_cell(None)
+            # self.display_hook.set_current_cell(None)
+            pass
 
     def _format_exception(self, exc):
         """Format exception for display in notebook."""
