@@ -5,7 +5,7 @@ A local-first notebook system for Python, inspired by
 into interactive notebooks with real-time updates and smart dependency
 tracking.
 
-**👉 Check out [`examples/getting-started.py`](examples/getting-started.py) and its rendered version at [`examples/getting-started.html`](https://htmlpreview.github.io/?https://github.com/alexalemi/plaque/blob/main/examples/getting-started.html) to see Plaque in action!**
+**👉 Check out [`examples/getting-started.py`](examples/getting-started.py) and its rendered version at [`examples/getting-started.html`](https://htmlpreview.github.io/?https://github.com/alexalemi/plaque/blob/main/examples/getting-started.html) to see Plaque in action or watch the 🎥[Demo Video](https://youtu.be/DlbA1aOMsFw?si=gq8EFQ6LpcweRSu7)**
 
 ## Features
 
