@@ -1,18 +1,23 @@
-"""The main execution environment.
+"""The main execution environment using IPython.
 
-Represents a simple python environment with its own locals and globals."""
+Provides a full IPython execution environment with support for:
+- Magic commands (%timeit, %matplotlib, etc.)
+- Top-level async/await
+- Rich display output
+- Enhanced error formatting
+"""
 
-import ast
 import sys
-import traceback
-from types import CodeType
-from typing import Any
+import io
 from contextlib import redirect_stdout, redirect_stderr
+from typing import Any
+
+from IPython.core.interactiveshell import InteractiveShell
+from IPython.core.displayhook import DisplayHook
+
 from .iowrapper import NotebookStdout
 from .cell import Cell
 from .display import capture_matplotlib_plots
-
-import builtins
 
 # Set matplotlib backend before any other matplotlib imports
 try:
@@ -23,26 +28,81 @@ except ImportError:
     pass  # matplotlib not installed
 
 
+class SilentDisplayHook(DisplayHook):
+    """A display hook that captures results without printing."""
+
+    def __init__(self, shell, *args, **kwargs):
+        super().__init__(shell, *args, **kwargs)
+        self.captured_result = None
+
+    def __call__(self, result=None):
+        """Override to capture result without printing."""
+        if result is not None:
+            self.captured_result = result
+            # Still update user_ns with _, __, ___, etc.
+            self.update_user_ns(result)
+
+    def reset_capture(self):
+        """Reset the captured result for a new cell."""
+        self.captured_result = None
+
+
 class Environment:
+    """IPython-based execution environment for plaque notebooks.
+
+    Uses IPython's InteractiveShell to provide:
+    - Magic command support (%timeit, %matplotlib, %%time, etc.)
+    - Top-level async/await
+    - Rich display integration
+    - Better error messages
+    """
+
     def __init__(self):
-        self.locals = {"__name__": "__main__"}
-        self.globals = self.locals  # Use same namespace for globals and locals
+        # Create a NEW IPython shell instance (not the singleton)
+        # This ensures each Environment has its own namespace
+        self.shell = InteractiveShell()
+
+        # Configure the shell for notebook-like behavior
+        self.shell.ast_node_interactivity = "last_expr"  # Only show last expression
+
+        # Enable top-level async support
+        self.shell.autoawait = True
+
+        # Install our silent display hook to capture results without printing
+        # IMPORTANT: Must also update display_trap.hook, not just shell.displayhook
+        self.display_hook = SilentDisplayHook(self.shell)
+        self.shell.displayhook = self.display_hook
+        self.shell.display_trap.hook = self.display_hook
+
+        # Disable automatic traceback printing - we'll format errors ourselves
+        # This prevents IPython from printing tracebacks to stdout
+        self.shell.showtraceback = lambda *args, **kwargs: None
+
+        # Set up the namespace
+        self.shell.user_ns["__name__"] = "__main__"
+
+        # Execution counter
         self.counter = 0
 
-    def eval(self, source: str | CodeType):
-        return builtins.eval(source, self.globals, self.locals)
+    @property
+    def locals(self) -> dict:
+        """Access to the user namespace (for compatibility)."""
+        return self.shell.user_ns
 
-    def exec(self, source: str | CodeType):
-        return builtins.exec(source, self.globals, self.locals)
-
-    def compile(self, source, mode="exec"):
-        try:
-            return builtins.compile(source, "<cell>", mode)
-        except SyntaxError as e:
-            return None, str(e)
+    @property
+    def globals(self) -> dict:
+        """Access to the user namespace (for compatibility)."""
+        return self.shell.user_ns
 
     def execute_cell(self, cell: Cell):
-        """Execute a code cell with proper error handling and rich display."""
+        """Execute a code cell using IPython with proper error handling and rich display.
+
+        Supports:
+        - Magic commands (line and cell magics)
+        - Top-level async/await
+        - Rich display output
+        - Matplotlib figure capture
+        """
         assert cell.is_code, "Can only execute code cells."
 
         # Clear previous results
@@ -53,93 +113,63 @@ class Environment:
         cell.counter = self.counter
         self.counter += 1
 
+        # Reset display hook capture
+        self.display_hook.reset_capture()
+
         # Create buffers for output capture
         stdout_buffer = NotebookStdout(sys.stdout)
         stderr_buffer = NotebookStdout(sys.stderr)
 
         try:
-            # Parse the cell content
-            try:
-                tree = ast.parse(cell.content)
-                stmts = list(ast.iter_child_nodes(tree))
-            except SyntaxError as e:
-                # Handle syntax errors with better formatting
-                cell.error = self._format_syntax_error(e, cell.content)
-                return None
-
-            if not stmts:
-                return None
-
-            # Capture matplotlib plots and output during execution
             result = None
-            is_expression_cell = isinstance(stmts[-1], ast.Expr)
 
+            # Capture matplotlib plots during execution
             with capture_matplotlib_plots() as figure_capture:
                 try:
-                    if is_expression_cell:
-                        # Expression cell
-                        with (
-                            redirect_stdout(stdout_buffer),
-                            redirect_stderr(stderr_buffer),
-                        ):
-                            # The last statement is an expression - execute preceding statements
-                            if len(stmts) > 1:
-                                exec_code = self.compile(
-                                    ast.Module(body=stmts[:-1], type_ignores=[]),
-                                    "exec",  # type: ignore
-                                )
-                                if isinstance(exec_code, tuple):  # Error occurred
-                                    cell.error = exec_code[1]
-                                    return None
-                                self.exec(exec_code)
+                    with (
+                        redirect_stdout(stdout_buffer),
+                        redirect_stderr(stderr_buffer),
+                    ):
+                        # Execute the cell using IPython
+                        exec_result = self.shell.run_cell(
+                            cell.content,
+                            store_history=False,  # Don't store in IPython history
+                            silent=False,  # Allow result to be captured
+                        )
 
-                            # Evaluate the last expression
-                            eval_code = self.compile(ast.unparse(stmts[-1]), "eval")
-                            if isinstance(eval_code, tuple):  # Error occurred
-                                cell.error = eval_code[1]
-                                return None
+                        # Capture any output
+                        cell.stdout = stdout_buffer.getvalue()
+                        cell.stderr = stderr_buffer.getvalue()
 
-                            result = self.eval(eval_code)
+                        # Check for errors
+                        if exec_result.error_before_exec:
+                            cell.error = self._format_error(exec_result.error_before_exec)
+                            return None
 
-                            # Capture any output
-                            cell.stdout = stdout_buffer.getvalue()
-                            cell.stderr = stderr_buffer.getvalue()
+                        if exec_result.error_in_exec:
+                            cell.error = self._format_error(exec_result.error_in_exec)
+                            return None
 
-                    else:
-                        # Statement cell
-                        with (
-                            redirect_stdout(stdout_buffer),
-                            redirect_stderr(stderr_buffer),
-                        ):
-                            code_obj = self.compile(cell.content, "exec")
-                            if isinstance(code_obj, tuple):  # Error occurred
-                                cell.error = code_obj[1]
-                                return None
-
-                            self.exec(code_obj)
-
-                            # Capture any output
-                            cell.stdout = stdout_buffer.getvalue()
-                            cell.stderr = stderr_buffer.getvalue()
+                        # Get the result - IPython returns it in exec_result.result
+                        result = exec_result.result
+                        if result is None:
+                            # Also check our display hook
+                            result = self.display_hook.captured_result
 
                 except Exception as inner_e:
                     # Clean up figures in case of exception
                     figure_capture.close_figures()
                     raise inner_e
 
-            # Use captured figures from the context manager (after context manager is done)
+            # Use captured figures from the context manager
             if figure_capture.figures:
                 # Display the first captured figure
                 cell.result = figure_capture.figures[0]
-            elif (
-                is_expression_cell
-                and result is not None
-                and self._is_matplotlib_return_value(result)
-            ):
+            elif result is not None and self._is_matplotlib_return_value(result):
                 # If result is a matplotlib return value but no figures captured,
                 # suppress it (don't display matplotlib internal objects)
                 cell.result = None
-            elif is_expression_cell and result is not None:
+            elif result is not None:
                 cell.result = result
 
             # Clean up matplotlib figures after processing
@@ -152,38 +182,55 @@ class Environment:
             cell.stdout = stdout_buffer.getvalue()
             cell.stderr = stderr_buffer.getvalue()
             # Capture runtime errors with better formatting
-            cell.error = self._format_runtime_error(e, cell.content)
+            cell.error = self._format_error(e)
             return None
         finally:
             # Close buffers
             stdout_buffer.close()
             stderr_buffer.close()
 
-    def _format_syntax_error(self, error: SyntaxError, source: str) -> str:
-        """Format a syntax error with context and highlighting."""
-        lines = source.split("\n")
-        error_line = error.lineno if error.lineno else 1
+    def _format_error(self, error: Exception) -> str:
+        """Format an error for display.
 
-        # Build error message
-        parts = [f"SyntaxError: {error.msg}"]
+        Uses IPython's traceback formatting when available.
+        """
+        error_type = type(error).__name__
+        error_msg = str(error)
 
-        # Add context around the error line
-        start_line = max(1, error_line - 2)
-        end_line = min(len(lines), error_line + 2)
+        # For SyntaxErrors, provide context
+        if isinstance(error, SyntaxError):
+            parts = [f"SyntaxError: {error.msg}"]
+            if error.text:
+                parts.append(f"\n  {error.text.rstrip()}")
+                if error.offset:
+                    parts.append("  " + " " * (error.offset - 1) + "^")
+            return "\n".join(parts)
 
-        parts.append("\nContext:")
-        for i in range(start_line, end_line + 1):
-            if i <= len(lines):
-                line_content = lines[i - 1] if i <= len(lines) else ""
-                prefix = ">>> " if i == error_line else "    "
-                parts.append(f"{prefix}{i:3d}: {line_content}")
+        # For other errors, use IPython's formatting if available
+        try:
+            # Get the formatted traceback from IPython
+            tb_lines = self.shell.InteractiveTB.structured_traceback(
+                type(error), error, error.__traceback__
+            )
+            # Filter out internal plaque frames
+            filtered_lines = []
+            skip_next = False
+            for line in tb_lines:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if "plaque/" in line or "environment.py" in line:
+                    skip_next = True  # Skip the code line that follows
+                    continue
+                filtered_lines.append(line)
 
-                # Add pointer to error column
-                if i == error_line and error.offset:
-                    pointer_line = " " * (len(prefix) + 4 + error.offset - 1) + "^"
-                    parts.append(pointer_line)
+            if filtered_lines:
+                return "\n".join(filtered_lines)
+        except Exception:
+            pass
 
-        return "\n".join(parts)
+        # Fallback to simple error message
+        return f"{error_type}: {error_msg}"
 
     def _is_matplotlib_return_value(self, result: Any) -> bool:
         """Check if result is a matplotlib return value that should be suppressed."""
@@ -220,50 +267,31 @@ class Environment:
         except Exception:
             return False
 
-    def _format_runtime_error(self, error: Exception, source: str) -> str:
-        """Format a runtime error with cleaned traceback."""
-        error_type = type(error).__name__
-        error_msg = str(error)
 
-        # Get full traceback
-        tb_lines = traceback.format_exception(type(error), error, error.__traceback__)
+# For backwards compatibility, provide eval/exec methods
+# Note: These bypass IPython and use plain Python execution
+class LegacyEnvironment:
+    """Legacy environment using plain Python exec/eval.
 
-        # Find the line in our cell that caused the error
-        cell_tb_lines = []
-        in_cell = False
+    Provided for backwards compatibility. Prefer Environment for new code.
+    """
 
-        for line in tb_lines:
-            if "<cell>" in line:
-                in_cell = True
-                # Extract line number from traceback
-                if "line " in line:
-                    try:
-                        line_num_str = line.split("line ")[1].split(",")[0]
-                        line_num = int(line_num_str)
-                        cell_tb_lines.append(f"  Line {line_num} in cell")
-                    except IndexError:
-                        cell_tb_lines.append("  In cell")
-            elif in_cell and not any(
-                internal in line
-                for internal in ["plaque/", "environment.py", 'File "/']
-            ):
-                # This is the code line that caused the error
-                cell_tb_lines.append(f"    {line.strip()}")
-            elif "Traceback" in line:
-                continue  # Skip the "Traceback (most recent call last):" line
-            elif not any(
-                internal in line
-                for internal in ["plaque/", "environment.py", "site-packages/"]
-            ):
-                # Include other relevant traceback info
-                cell_tb_lines.append(line.rstrip())
+    def __init__(self):
+        self.locals = {"__name__": "__main__"}
+        self.globals = self.locals
+        self.counter = 0
 
-        if cell_tb_lines:
-            # Build a clean error message
-            result = [f"{error_type}: {error_msg}"]
-            result.append("\nTraceback:")
-            result.extend(cell_tb_lines)
-            return "\n".join(result)
-        else:
-            # Fallback to simple error message
-            return f"{error_type}: {error_msg}"
+    def eval(self, source):
+        import builtins
+        return builtins.eval(source, self.globals, self.locals)
+
+    def exec(self, source):
+        import builtins
+        return builtins.exec(source, self.globals, self.locals)
+
+    def compile(self, source, mode="exec"):
+        import builtins
+        try:
+            return builtins.compile(source, "<cell>", mode)
+        except SyntaxError as e:
+            return None, str(e)
