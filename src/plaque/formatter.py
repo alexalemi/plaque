@@ -273,8 +273,36 @@ def get_html_template() -> str:
         return f.read()
 
 
-def format(cells: Iterable[Cell], image_dir: Optional[Path] = None) -> str:
-    """Format cells into a complete HTML document."""
+def format(
+    cells: Iterable[Cell],
+    image_dir: Optional[Path] = None,
+    source_content: Optional[str] = None,
+    source_filename: Optional[str] = None,
+) -> str:
+    """Format cells into a complete HTML document.
+
+    Args:
+        cells: The cells to render
+        image_dir: Optional directory for saving images
+        source_content: Optional Python source code to embed for download
+        source_filename: Optional filename for the downloadable source
+    """
     cell_html = "\n".join(render_cell(cell, image_dir) for cell in cells)
     template = get_html_template()
-    return template.replace("{content}", cell_html)
+
+    # Prepare source data for embedding
+    if source_content and source_filename:
+        # Base64 encode the source content
+        source_b64 = base64.b64encode(source_content.encode('utf-8')).decode('ascii')
+        source_data = json.dumps({
+            "content": source_b64,
+            "filename": source_filename
+        })
+    else:
+        source_data = "null"
+
+    return (
+        template
+        .replace("{content}", cell_html)
+        .replace("{source_data}", source_data)
+    )

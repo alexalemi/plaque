@@ -18,14 +18,31 @@ def process_notebook(
     input_path: str | Path,
     processor: Processor,
     image_dir: Optional[Path] = None,
+    embed_source: bool = True,
 ) -> str:
     logger.info(f"Processing {input_path}")
 
+    input_path = Path(input_path)
+
     with open(input_path, "r") as f:
-        cells = list(parse_ast(f))
+        source_content = f.read()
+
+    # Parse from the source content
+    from io import StringIO
+    cells = list(parse_ast(StringIO(source_content)))
 
     cells = processor.process_cells(cells)
-    return format(cells, image_dir)
+
+    # Embed source for download if requested
+    if embed_source:
+        return format(
+            cells,
+            image_dir,
+            source_content=source_content,
+            source_filename=input_path.name,
+        )
+    else:
+        return format(cells, image_dir)
 
 
 @click.group()

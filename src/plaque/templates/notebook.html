@@ -332,6 +332,50 @@
             white-space: pre-wrap;
             word-wrap: break-word;
         }
+        /* Download button styling */
+        .download-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'Fira Sans Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.2s, transform 0.1s;
+            z-index: 1000;
+        }
+
+        .download-button:hover {
+            background: #357abd;
+            transform: translateY(-1px);
+        }
+
+        .download-button:active {
+            transform: translateY(0);
+        }
+
+        .download-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .download-button {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -347,8 +391,62 @@
     </script>
 </head>
 <body>
+    <!-- Download button (only shown if source is embedded) -->
+    <button id="download-btn" class="download-button" style="display: none;" onclick="downloadSource()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Download .py
+    </button>
+
     <div class="notebook">
         {content}
     </div>
+
+    <!-- Embedded source code (base64 encoded) -->
+    <script id="source-data" type="application/json">{source_data}</script>
+
+    <script>
+        function downloadSource() {
+            var dataEl = document.getElementById('source-data');
+            if (!dataEl) return;
+
+            try {
+                var data = JSON.parse(dataEl.textContent);
+                if (!data.content || !data.filename) return;
+
+                // Decode base64 content
+                var content = atob(data.content);
+
+                // Create blob and download
+                var blob = new Blob([content], {type: 'text/x-python'});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = data.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Failed to download source:', e);
+            }
+        }
+
+        // Show download button if source data is available
+        document.addEventListener('DOMContentLoaded', function() {
+            var dataEl = document.getElementById('source-data');
+            if (dataEl && dataEl.textContent && dataEl.textContent !== 'null') {
+                try {
+                    var data = JSON.parse(dataEl.textContent);
+                    if (data && data.content && data.filename) {
+                        document.getElementById('download-btn').style.display = 'flex';
+                    }
+                } catch (e) {}
+            }
+        });
+    </script>
 </body>
 </html>
