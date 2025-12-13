@@ -6,6 +6,7 @@ import json
 import os
 import re
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -191,11 +192,13 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
             html_parts.append("</div>")
 
         # Add error output if present
+        # Note: cell.error may contain HTML (from ansi_to_html conversion)
+        # so we don't escape it here
         if cell.error:
             html_parts.append('<div class="cell-error">')
             html_parts.append('<div class="error-label">Error:</div>')
             html_parts.append(
-                f'<pre class="error-content">{escape_html(cell.error)}</pre>'
+                f'<pre class="error-content">{cell.error}</pre>'
             )
             html_parts.append("</div>")
 
@@ -225,12 +228,13 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
             # Handle f-string markdown cells
             if cell.error:
                 # Show error for f-strings that failed to execute
+                # Note: cell.error may contain HTML (from ansi_to_html conversion)
                 html_parts.append(f'<div class="cell code-cell" id="{cell_id}">')
                 html_parts.append(f'<div class="cell-counter">{cell.counter}</div>')
                 html_parts.append('<div class="cell-error">')
                 html_parts.append('<div class="error-label">ERROR</div>')
                 html_parts.append(
-                    f'<pre class="error-content">{escape_html(cell.error)}</pre>'
+                    f'<pre class="error-content">{cell.error}</pre>'
                 )
                 html_parts.append("</div>")
                 html_parts.append("</div>")
@@ -270,8 +274,40 @@ def get_html_template() -> str:
         return f.read()
 
 
-def format(cells: Iterable[Cell], image_dir: Optional[Path] = None) -> str:
-    """Format cells into a complete HTML document."""
+def format(
+    cells: Iterable[Cell],
+    image_dir: Optional[Path] = None,
+    source_content: Optional[str] = None,
+    source_filename: Optional[str] = None,
+) -> str:
+    """Format cells into a complete HTML document.
+
+    Args:
+        cells: The cells to render
+        image_dir: Optional directory for saving images
+        source_content: Optional Python source code to embed for download
+        source_filename: Optional filename for the downloadable source
+    """
     cell_html = "\n".join(render_cell(cell, image_dir) for cell in cells)
     template = get_html_template()
-    return template.replace("{content}", cell_html)
+
+    # Prepare source data for embedding
+    if source_content and source_filename:
+        # Base64 encode the source content
+        source_b64 = base64.b64encode(source_content.encode('utf-8')).decode('ascii')
+        source_data = json.dumps({
+            "content": source_b64,
+            "filename": source_filename
+        })
+    else:
+        source_data = "null"
+
+    # Generate ISO datetime for header
+    generation_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    return (
+        template
+        .replace("{content}", cell_html)
+        .replace("{source_data}", source_data)
+        .replace("{generation_date}", generation_date)
+    )

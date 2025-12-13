@@ -50,8 +50,8 @@ print(f"Total: {total}")
         )
 
         try:
-            # Wait for server to start
-            time.sleep(2)
+            # Wait for server to start (IPython initialization takes a moment)
+            time.sleep(4)
 
             base_url = f"http://localhost:{port}"
 

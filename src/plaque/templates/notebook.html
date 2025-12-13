@@ -332,6 +332,44 @@
             white-space: pre-wrap;
             word-wrap: break-word;
         }
+        /* Download link styling */
+        .download-link {
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            color: #4a5568;
+            text-decoration: none;
+            cursor: pointer;
+            display: none;
+        }
+
+        .download-link:hover {
+            color: #2d3748;
+            text-decoration: underline;
+        }
+
+        .notebook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .header-left {
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .header-left a {
+            color: #4a5568;
+            text-decoration: none;
+        }
+
+        .header-left a:hover {
+            text-decoration: underline;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -348,7 +386,57 @@
 </head>
 <body>
     <div class="notebook">
+        <div class="notebook-header">
+            <div class="header-left">
+                <a href="https://github.com/alexalemi/plaque">Plaque Notebook</a> generated {generation_date}
+            </div>
+            <a id="download-link" class="download-link" onclick="downloadSource()">[download]</a>
+        </div>
         {content}
     </div>
+
+    <!-- Embedded source code (base64 encoded) -->
+    <script id="source-data" type="application/json">{source_data}</script>
+
+    <script>
+        function downloadSource() {
+            var dataEl = document.getElementById('source-data');
+            if (!dataEl) return;
+
+            try {
+                var data = JSON.parse(dataEl.textContent);
+                if (!data.content || !data.filename) return;
+
+                // Decode base64 content
+                var content = atob(data.content);
+
+                // Create blob and download
+                var blob = new Blob([content], {type: 'text/x-python'});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = data.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Failed to download source:', e);
+            }
+        }
+
+        // Show download link if source data is available
+        document.addEventListener('DOMContentLoaded', function() {
+            var dataEl = document.getElementById('source-data');
+            if (dataEl && dataEl.textContent && dataEl.textContent !== 'null') {
+                try {
+                    var data = JSON.parse(dataEl.textContent);
+                    if (data && data.content && data.filename) {
+                        document.getElementById('download-link').style.display = 'inline';
+                    }
+                } catch (e) {}
+            }
+        });
+    </script>
 </body>
 </html>

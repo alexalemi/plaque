@@ -6,12 +6,46 @@
  - [X] Revisit parser, consider using `ast` (and implement dependency tracking)
  - [X] Package Setup.
  - [X] Add a rest style server API for better agentic support.
+ - [X] Add a download button to recover the raw file.
+ - [X] Switch to IPython execution engine.
  - [ ] Create MCP server
  - [ ] Add SSE Updates. Server sent events with live updating
  - [ ] Documentation.
  - [ ] Enhanced pandas and plotting support (from marimo?)
  - [ ] Add other mime types (pdf, video)
 
+
+## 2025-12-13
+
+Major rewrite of the execution engine to use IPython instead of plain Python exec/eval.
+
+### IPython Execution Engine
+- Rewrote `environment.py` to use IPython's InteractiveShell
+- Added support for magic commands (`%timeit`, `%%time`, `%who`, `%%capture`, etc.)
+- Enabled top-level async/await without needing `asyncio.run()`
+- Added shell command support with `!` prefix
+- Created `SilentDisplayHook` to capture results without printing to stdout
+- Fixed IPython's display_trap.hook caching issue for proper result capture
+
+### Error Formatting
+- Implemented ANSI-to-HTML conversion for colored error tracebacks
+- IPython's rich error formatting now displays with proper colors in the browser
+- Added filtering for internal plaque frames in stack traces
+
+### Download Button
+- Added `[download]` link in notebook header to retrieve original Python source
+- Source code is base64 encoded and embedded in the HTML
+- Notebooks are now fully self-contained and portable
+
+### Notebook Header
+- Added header with "Plaque Notebook" link to GitHub repository
+- Displays generation timestamp in UTC (YYYY-MM-DD HH:MM:SS UTC)
+- Clean monospace styling for both branding and download link
+
+### Testing
+- Added 8 new tests for IPython features (magics, async, shell commands)
+- Updated existing tests for IPython's different namespace behavior
+- All 218+ tests passing
 
 ## 2025-07-18
 

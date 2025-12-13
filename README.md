@@ -14,6 +14,8 @@ tracking.
 - **Rich Output**: Supports Markdown, LaTeX equations, plots, DataFrames, and more
 - **Flexible Format**: Supports both `# %%` markers and multiline comments for cells
 - **Python-native**: Use standard Python syntax for both code and documentation
+- **IPython Support**: Magic commands (`%timeit`, `%%time`, etc.) and top-level async/await
+- **Download Button**: Rendered notebooks include a download link to get the original Python source
 
 ## Principles
 
@@ -128,6 +130,46 @@ Both styles support:
 - LaTeX equations (both inline and display)
 - Code syntax highlighting
 - Rich output (plots, DataFrames, etc.)
+
+### IPython Features
+
+Plaque uses IPython as its execution engine, which means you can use:
+
+**Magic Commands:**
+```python
+# Time a single line
+%timeit sum(range(1000))
+
+# Time an entire cell
+%%time
+result = expensive_computation()
+
+# List variables in namespace
+%who
+
+# Get help on objects
+my_function?
+```
+
+**Top-level Async/Await:**
+```python
+import asyncio
+
+async def fetch_data(url):
+    await asyncio.sleep(0.1)
+    return {"data": "result"}
+
+# Use await directly at the top level - no asyncio.run() needed!
+result = await fetch_data("https://api.example.com")
+result
+```
+
+**Shell Commands:**
+```python
+# Run shell commands with !
+!ls -la
+!pip list | grep numpy
+```
 
 ### Guidelines for Multiline Comments
 
