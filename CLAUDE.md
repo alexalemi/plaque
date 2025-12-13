@@ -172,15 +172,63 @@ plaque watch notebook.py --open
 uv run pytest tests/
 ```
 
+## IPython Features
+
+Plaque uses IPython as its execution engine, enabling powerful features:
+
+### Magic Commands
+```python
+# Time a single line
+%timeit sum(range(1000))
+
+# Time an entire cell
+%%time
+result = expensive_computation()
+
+# List variables
+%who
+
+# Get help
+my_function?
+```
+
+### Top-level Async/Await
+```python
+import asyncio
+
+async def fetch_data():
+    await asyncio.sleep(0.1)
+    return "result"
+
+# No asyncio.run() needed!
+result = await fetch_data()
+```
+
+### Shell Commands
+```python
+!ls -la
+!pip list | grep numpy
+```
+
 ## Error Handling
 
 Plaque provides comprehensive error handling:
 - Syntax errors are highlighted with line numbers
-- Runtime errors show clean tracebacks
+- Runtime errors show clean tracebacks with colored output
 - Internal plaque frames are filtered out
+- ANSI color codes are converted to HTML for proper display
 - Errors don't crash the entire notebook
 
 Your notebook will continue running even if individual cells fail, making iterative development smooth and efficient.
+
+## Notebook Header and Download
+
+Rendered notebooks include a header with:
+- **Plaque Notebook** link to the GitHub repository
+- Generation timestamp (UTC)
+- **[download]** link to retrieve the original Python source file
+
+The source code is embedded in the HTML file (base64 encoded), so notebooks are fully self-contained and portable.
 
 ## API for AI Agents
 

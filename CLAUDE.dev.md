@@ -18,7 +18,7 @@ Plaque is a local-first notebook system for Python, inspired by Clerk for Clojur
 These are all at `src/plaque/`:
 - **`ast_parser.py`**: AST-based parser for robust Python file parsing, handles both `# %%` markers and multiline comments with proper cell boundary detection
 - **`cell.py`**: Defines `Cell` and `CellType` classes for representing notebook cells
-- **`environment.py`**: Execution environment with proper error handling and matplotlib capture
+- **`environment.py`**: IPython-based execution environment with magic commands, top-level async, and rich error formatting
 - **`formatter.py`**: HTML generation with Pygments syntax highlighting and markdown rendering
 - **`api_formatter.py`**: JSON API formatter for converting Cell objects to JSON for AI agent consumption
 - **`display.py`**: Marimo-style display system with method resolution priority
@@ -116,12 +116,13 @@ F-string comments allow dynamic markdown generation with embedded variables and 
 - **watchdog**: File watching
 - **pygments**: Syntax highlighting
 - **markdown**: Markdown processing (with extensions for tables, code highlighting)
+- **ipython**: Execution engine with magic commands, top-level async, and rich display support
 
 ## Recent Major Improvements
 
 ### ✅ Completed Features
 - **AST Parser**: Robust parsing using Python's AST module with support for all cell formats
-- **Environment**: Code execution with proper error handling and matplotlib capture
+- **IPython Environment**: Full IPython execution with magic commands (`%timeit`, `%%time`, etc.) and top-level async/await
 - **Formatter**: Professional HTML output with Pygments and markdown support
 - **Display System**: Marimo-style method resolution for rich output with structured renderables
 - **CLI**: Complete subcommand structure with `render`, `watch`, and `serve`
@@ -129,7 +130,9 @@ F-string comments allow dynamic markdown generation with embedded variables and 
 - **Dependency Tracking**: Smart re-execution based on variable dependencies
 - **REST API**: Comprehensive API endpoints for AI agent integration
 - **F-String Support**: Dynamic templated markdown cells with variable interpolation
-- **Error Handling**: Detailed syntax and runtime error formatting with clean tracebacks
+- **Error Handling**: IPython-powered error formatting with ANSI-to-HTML color conversion
+- **Download Button**: Embedded source code with [download] link in notebook header
+- **Notebook Header**: Plaque branding with generation timestamp (UTC)
 - **Testing**: Comprehensive test suite covering all components (11 test files)
 
 ### 🔧 Current Status
@@ -252,8 +255,9 @@ Plaque now includes sophisticated dependency analysis that tracks which variable
 ## Testing
 Comprehensive test suite covering:
 - **Display System**: Method resolution, IPython methods, built-in types
-- **Environment**: Code execution, error handling, variable persistence
-- **Formatter**: HTML generation, template injection, styling
+- **Environment**: Code execution, error handling, variable persistence, IPython features
+- **IPython Features**: Magic commands (%timeit, %%time, %who), top-level async/await, shell commands
+- **Formatter**: HTML generation, template injection, styling, source embedding
 - **AST Parser**: Robust parsing of all cell formats and boundary detection
 - **Dependency Analyzer**: Variable tracking and dependency graph construction
 - **API Integration**: REST endpoints and JSON formatting

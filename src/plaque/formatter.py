@@ -302,8 +302,8 @@ def format(
     else:
         source_data = "null"
 
-    # Generate ISO date for header
-    generation_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Generate ISO datetime for header
+    generation_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     return (
         template
