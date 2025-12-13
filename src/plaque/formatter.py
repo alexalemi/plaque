@@ -6,6 +6,7 @@ import json
 import os
 import re
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -301,8 +302,12 @@ def format(
     else:
         source_data = "null"
 
+    # Generate ISO date for header
+    generation_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
     return (
         template
         .replace("{content}", cell_html)
         .replace("{source_data}", source_data)
+        .replace("{generation_date}", generation_date)
     )

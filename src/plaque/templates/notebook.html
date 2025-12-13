@@ -349,10 +349,26 @@
 
         .notebook-header {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px solid #e2e8f0;
+        }
+
+        .header-left {
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .header-left a {
+            color: #4a5568;
+            text-decoration: none;
+        }
+
+        .header-left a:hover {
+            text-decoration: underline;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -371,6 +387,9 @@
 <body>
     <div class="notebook">
         <div class="notebook-header">
+            <div class="header-left">
+                <a href="https://github.com/alexalemi/plaque">Plaque Notebook</a> generated {generation_date}
+            </div>
             <a id="download-link" class="download-link" onclick="downloadSource()">[download]</a>
         </div>
         {content}
