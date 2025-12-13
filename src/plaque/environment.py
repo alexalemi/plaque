@@ -7,6 +7,7 @@ Provides a full IPython execution environment with support for:
 - Enhanced error formatting
 """
 
+import re
 import sys
 import io
 from contextlib import redirect_stdout, redirect_stderr
@@ -18,6 +19,109 @@ from IPython.core.displayhook import DisplayHook
 from .iowrapper import NotebookStdout
 from .cell import Cell
 from .display import capture_matplotlib_plots
+
+# ANSI color code to CSS color mapping
+ANSI_COLORS = {
+    '30': 'black',
+    '31': '#e74c3c',      # red
+    '32': '#2ecc71',      # green
+    '33': '#f39c12',      # yellow
+    '34': '#3498db',      # blue
+    '35': '#9b59b6',      # magenta
+    '36': '#1abc9c',      # cyan
+    '37': 'white',
+    '39': None,           # default/reset
+    '90': '#7f8c8d',      # bright black (gray)
+    '91': '#e74c3c',      # bright red
+    '92': '#2ecc71',      # bright green
+    '93': '#f1c40f',      # bright yellow
+    '94': '#3498db',      # bright blue
+    '95': '#9b59b6',      # bright magenta
+    '96': '#1abc9c',      # bright cyan
+    '97': 'white',        # bright white
+}
+
+# Extended 256-color palette codes (38;5;N format)
+ANSI_256_COLORS = {
+    '28': '#008700',      # green
+    '124': '#af0000',     # dark red
+    '160': '#d70000',     # red
+    '166': '#d75f00',     # orange
+    '196': '#ff0000',     # bright red
+}
+
+
+def ansi_to_html(text: str) -> str:
+    """Convert ANSI escape codes to HTML span elements with colors."""
+    result = []
+    i = 0
+    current_color = None
+
+    while i < len(text):
+        # Check for ANSI escape sequence
+        if text[i:i+2] == '\x1b[':
+            # Find the end of the escape sequence
+            end = text.find('m', i)
+            if end != -1:
+                # Extract the codes
+                codes = text[i+2:end]
+
+                # Handle reset (0) or default color (39)
+                if codes in ('0', '39', ''):
+                    if current_color:
+                        result.append('</span>')
+                        current_color = None
+                # Handle 256-color codes (38;5;N)
+                elif codes.startswith('38;5;'):
+                    color_num = codes[5:]
+                    color = ANSI_256_COLORS.get(color_num)
+                    if color:
+                        if current_color:
+                            result.append('</span>')
+                        result.append(f'<span style="color: {color}">')
+                        current_color = color
+                # Handle standard colors
+                else:
+                    # Get the last code (in case of combined codes like 1;31)
+                    code_parts = codes.split(';')
+                    for code in code_parts:
+                        color = ANSI_COLORS.get(code)
+                        if color:
+                            if current_color:
+                                result.append('</span>')
+                            result.append(f'<span style="color: {color}">')
+                            current_color = color
+                        elif code == '0' or color is None and code in ANSI_COLORS:
+                            if current_color:
+                                result.append('</span>')
+                                current_color = None
+
+                i = end + 1
+                continue
+
+        # Regular character - escape HTML entities
+        char = text[i]
+        if char == '<':
+            result.append('&lt;')
+        elif char == '>':
+            result.append('&gt;')
+        elif char == '&':
+            result.append('&amp;')
+        else:
+            result.append(char)
+        i += 1
+
+    # Close any open span
+    if current_color:
+        result.append('</span>')
+
+    return ''.join(result)
+
+
+def strip_ansi_codes(text: str) -> str:
+    """Remove ANSI escape codes (color codes) from a string."""
+    return re.sub(r'\x1b\[[0-9;]*m', '', text)
+
 
 # Set matplotlib backend before any other matplotlib imports
 try:
@@ -192,7 +296,8 @@ class Environment:
     def _format_error(self, error: Exception) -> str:
         """Format an error for display.
 
-        Uses IPython's traceback formatting when available.
+        Uses IPython's traceback formatting when available, converting
+        ANSI color codes to HTML for colored display.
         """
         error_type = type(error).__name__
         error_msg = str(error)
@@ -216,16 +321,20 @@ class Environment:
             filtered_lines = []
             skip_next = False
             for line in tb_lines:
+                # Strip ANSI codes for filtering check
+                clean_line = strip_ansi_codes(line)
                 if skip_next:
                     skip_next = False
                     continue
-                if "plaque/" in line or "environment.py" in line:
+                if "plaque/" in clean_line or "environment.py" in clean_line:
                     skip_next = True  # Skip the code line that follows
                     continue
                 filtered_lines.append(line)
 
             if filtered_lines:
-                return "\n".join(filtered_lines)
+                # Convert ANSI codes to HTML for the final result
+                raw_result = "\n".join(filtered_lines)
+                return ansi_to_html(raw_result)
         except Exception:
             pass
 

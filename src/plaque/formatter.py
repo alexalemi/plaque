@@ -191,11 +191,13 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
             html_parts.append("</div>")
 
         # Add error output if present
+        # Note: cell.error may contain HTML (from ansi_to_html conversion)
+        # so we don't escape it here
         if cell.error:
             html_parts.append('<div class="cell-error">')
             html_parts.append('<div class="error-label">Error:</div>')
             html_parts.append(
-                f'<pre class="error-content">{escape_html(cell.error)}</pre>'
+                f'<pre class="error-content">{cell.error}</pre>'
             )
             html_parts.append("</div>")
 
@@ -225,12 +227,13 @@ def render_cell(cell: Cell, image_dir: Optional[Path] = None) -> str:
             # Handle f-string markdown cells
             if cell.error:
                 # Show error for f-strings that failed to execute
+                # Note: cell.error may contain HTML (from ansi_to_html conversion)
                 html_parts.append(f'<div class="cell code-cell" id="{cell_id}">')
                 html_parts.append(f'<div class="cell-counter">{cell.counter}</div>')
                 html_parts.append('<div class="cell-error">')
                 html_parts.append('<div class="error-label">ERROR</div>')
                 html_parts.append(
-                    f'<pre class="error-content">{escape_html(cell.error)}</pre>'
+                    f'<pre class="error-content">{cell.error}</pre>'
                 )
                 html_parts.append("</div>")
                 html_parts.append("</div>")
