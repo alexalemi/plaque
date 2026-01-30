@@ -16,7 +16,8 @@ import click
 
 
 from .watcher import FileWatcher
-from .api_formatter import cell_to_json, notebook_state_to_json
+from .api_formatter import cell_to_json, notebook_state_to_json, format_result
+from .scratchpad import ScratchpadManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class NotebookHTTPServer:
         self.last_update: float = time.time()
         self.processor = None  # Will be set by the caller
         self.current_cells = []  # Current cell state
+        self.scratchpad_manager = None  # Initialized when processor is set
 
     def start(
         self,
@@ -51,6 +53,13 @@ class NotebookHTTPServer:
         self.temp_dir = None
         self.watcher = None
         self.processor = processor
+
+        # Initialize scratchpad manager if we have a processor with an environment
+        if processor and hasattr(processor, "environment"):
+            self.scratchpad_manager = ScratchpadManager(
+                processor.environment,
+                last_update_fn=lambda: self.last_update
+            )
 
         try:
             # Create temporary directory
@@ -180,7 +189,7 @@ class NotebookHTTPServer:
                 self.send_header("Cache-Control", "no-cache")
                 # CORS headers for agent access
                 self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.end_headers()
                 self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
@@ -189,13 +198,30 @@ class NotebookHTTPServer:
                 """Handle preflight CORS requests."""
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.end_headers()
 
+            def do_POST(self):
+                """Handle POST requests (for scratchpad API)."""
+                if self.path.startswith("/api/scratchpad"):
+                    self.handle_scratchpad_post()
+                else:
+                    self.send_json_response({"error": "Method not allowed"}, 405)
+
+            def do_DELETE(self):
+                """Handle DELETE requests (for scratchpad sessions)."""
+                if self.path.startswith("/api/scratchpad/session/"):
+                    self.handle_scratchpad_delete()
+                else:
+                    self.send_json_response({"error": "Method not allowed"}, 405)
+
             def do_GET(self):
-                # API endpoints
-                if self.path.startswith("/api/"):
+                # Scratchpad API (handle separately for clarity)
+                if self.path.startswith("/api/scratchpad"):
+                    self.handle_scratchpad_get()
+                # Other API endpoints
+                elif self.path.startswith("/api/"):
                     self.handle_api_request()
                 elif self.path == "/reload_check":
                     # Serve the reload check endpoint
@@ -390,12 +416,175 @@ class NotebookHTTPServer:
                 except Exception as e:
                     self.send_json_response({"error": str(e)}, 500)
 
+            def handle_scratchpad_get(self):
+                """Handle GET requests for scratchpad API."""
+                if server_instance.scratchpad_manager is None:
+                    self.send_json_response(
+                        {"error": "Scratchpad not available (no processor)"}, 503
+                    )
+                    return
+
+                try:
+                    # GET /api/scratchpad/sessions - List all sessions
+                    if self.path == "/api/scratchpad/sessions":
+                        sessions = server_instance.scratchpad_manager.list_sessions()
+                        self.send_json_response({"sessions": sessions})
+
+                    # GET /api/scratchpad/session/{id}/variables - List variables
+                    elif "/variables" in self.path:
+                        parts = self.path.split("/")
+                        session_id = parts[4]  # /api/scratchpad/session/{id}/variables
+                        session = server_instance.scratchpad_manager.get_session(session_id)
+                        if session is None:
+                            self.send_json_response({"error": "Session not found"}, 404)
+                            return
+
+                        main_ns = server_instance.scratchpad_manager.main_environment.shell.user_ns
+                        variables = session.get_variables(main_ns)
+                        self.send_json_response({
+                            "session_id": session_id,
+                            "variables": variables
+                        })
+
+                    else:
+                        self.send_json_response({"error": "Unknown scratchpad endpoint"}, 404)
+
+                except Exception as e:
+                    self.send_json_response({"error": str(e)}, 500)
+
+            def handle_scratchpad_post(self):
+                """Handle POST requests for scratchpad API."""
+                if server_instance.scratchpad_manager is None:
+                    self.send_json_response(
+                        {"error": "Scratchpad not available (no processor)"}, 503
+                    )
+                    return
+
+                try:
+                    # Read request body
+                    content_length = int(self.headers.get("Content-Length", 0))
+                    body = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
+                    data = json.loads(body)
+
+                    image_dir = (
+                        Path(server_instance.temp_dir) / "images"
+                        if server_instance.temp_dir
+                        else None
+                    )
+
+                    # POST /api/scratchpad/execute - Ephemeral execution
+                    if self.path == "/api/scratchpad/execute":
+                        code = data.get("code", "")
+                        if not code:
+                            self.send_json_response({"error": "No code provided"}, 400)
+                            return
+
+                        result = server_instance.scratchpad_manager.execute_ephemeral(code)
+                        response = result.to_dict()
+
+                        # Format the result for JSON
+                        if result.result is not None:
+                            response["result"] = format_result(
+                                result.result, image_dir, result.counter, include_base64=True
+                            )
+                        else:
+                            response["result"] = None
+
+                        self.send_json_response(response)
+
+                    # POST /api/scratchpad/session - Create new session
+                    elif self.path == "/api/scratchpad/session":
+                        session = server_instance.scratchpad_manager.create_session()
+                        self.send_json_response({
+                            "session_id": session.session_id,
+                            "created_at": session.created_at,
+                            "forked_from_update": session.forked_from_update
+                        })
+
+                    # POST /api/scratchpad/session/{id}/execute - Execute in session
+                    elif "/execute" in self.path and "/session/" in self.path:
+                        parts = self.path.split("/")
+                        session_id = parts[4]  # /api/scratchpad/session/{id}/execute
+                        session = server_instance.scratchpad_manager.get_session(session_id)
+                        if session is None:
+                            self.send_json_response({"error": "Session not found"}, 404)
+                            return
+
+                        code = data.get("code", "")
+                        if not code:
+                            self.send_json_response({"error": "No code provided"}, 400)
+                            return
+
+                        result = session.execute(code)
+                        response = result.to_dict()
+
+                        # Format the result for JSON
+                        if result.result is not None:
+                            response["result"] = format_result(
+                                result.result, image_dir, result.counter, include_base64=True
+                            )
+                        else:
+                            response["result"] = None
+
+                        self.send_json_response(response)
+
+                    # POST /api/scratchpad/session/{id}/reset - Reset session
+                    elif "/reset" in self.path and "/session/" in self.path:
+                        parts = self.path.split("/")
+                        session_id = parts[4]  # /api/scratchpad/session/{id}/reset
+                        session = server_instance.scratchpad_manager.get_session(session_id)
+                        if session is None:
+                            self.send_json_response({"error": "Session not found"}, 404)
+                            return
+
+                        session.reset(
+                            server_instance.scratchpad_manager.main_environment,
+                            server_instance.last_update
+                        )
+                        self.send_json_response({
+                            "session_id": session_id,
+                            "reset": True,
+                            "forked_from_update": session.forked_from_update
+                        })
+
+                    else:
+                        self.send_json_response({"error": "Unknown scratchpad endpoint"}, 404)
+
+                except json.JSONDecodeError:
+                    self.send_json_response({"error": "Invalid JSON"}, 400)
+                except Exception as e:
+                    self.send_json_response({"error": str(e)}, 500)
+
+            def handle_scratchpad_delete(self):
+                """Handle DELETE requests for scratchpad sessions."""
+                if server_instance.scratchpad_manager is None:
+                    self.send_json_response(
+                        {"error": "Scratchpad not available (no processor)"}, 503
+                    )
+                    return
+
+                try:
+                    # DELETE /api/scratchpad/session/{id}
+                    parts = self.path.split("/")
+                    if len(parts) >= 5:
+                        session_id = parts[4]
+                        deleted = server_instance.scratchpad_manager.delete_session(session_id)
+                        if deleted:
+                            self.send_json_response({"deleted": True, "session_id": session_id})
+                        else:
+                            self.send_json_response({"error": "Session not found"}, 404)
+                    else:
+                        self.send_json_response({"error": "Invalid endpoint"}, 400)
+
+                except Exception as e:
+                    self.send_json_response({"error": str(e)}, 500)
+
             def log_message(self, format, *args):
-                # Suppress log messages for reload_check and API requests
-                if args and (
-                    "/reload_check" not in str(args[0]) and "/api/" not in str(args[0])
-                ):
-                    super().log_message(format, *args)
+                # Suppress log messages for reload_check, API requests, and scratchpad
+                if args:
+                    path = str(args[0])
+                    if "/reload_check" not in path and "/api/" not in path:
+                        super().log_message(format, *args)
 
         return NotebookRequestHandler
 

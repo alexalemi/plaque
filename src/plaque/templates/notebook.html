@@ -370,6 +370,206 @@
         .header-left a:hover {
             text-decoration: underline;
         }
+
+        /* Scratchpad Panel Styles */
+        #scratchpad-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        #scratchpad-toggle:hover {
+            background: #357abd;
+            transform: scale(1.05);
+        }
+
+        #scratchpad-toggle.active {
+            background: #e53e3e;
+        }
+
+        #scratchpad-panel {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 400px;
+            height: 100vh;
+            background: #1a1a2e;
+            border-left: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.3s ease;
+            font-family: 'Fira Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+        }
+
+        #scratchpad-panel.open {
+            right: 0;
+        }
+
+        .scratchpad-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #16213e;
+            border-bottom: 1px solid #333;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .scratchpad-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .scratchpad-header button {
+            background: transparent;
+            border: 1px solid #4a5568;
+            color: #a0aec0;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        .scratchpad-header button:hover {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+
+        #scratchpad-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .scratchpad-entry {
+            margin-bottom: 12px;
+        }
+
+        .scratchpad-input-line {
+            color: #68d391;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .scratchpad-input-line::before {
+            content: ">>> ";
+            color: #48bb78;
+        }
+
+        .scratchpad-result {
+            color: #e2e8f0;
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .scratchpad-stdout {
+            color: #a0aec0;
+            margin-top: 4px;
+            white-space: pre-wrap;
+        }
+
+        .scratchpad-error {
+            color: #fc8181;
+            margin-top: 4px;
+            white-space: pre-wrap;
+        }
+
+        .scratchpad-input-area {
+            border-top: 1px solid #333;
+            padding: 12px;
+            background: #16213e;
+        }
+
+        #scratchpad-input {
+            width: 100%;
+            min-height: 60px;
+            background: #1a1a2e;
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 13px;
+            padding: 8px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        #scratchpad-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+
+        #scratchpad-input::placeholder {
+            color: #4a5568;
+        }
+
+        .scratchpad-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .scratchpad-buttons button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        #scratchpad-run {
+            background: #4a90e2;
+            color: white;
+        }
+
+        #scratchpad-run:hover {
+            background: #357abd;
+        }
+
+        #scratchpad-run:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+        }
+
+        .scratchpad-status {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* Result image handling */
+        .scratchpad-result img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 8px;
+            border-radius: 4px;
+        }
+
+        /* Adjust body margin when panel is open */
+        body.scratchpad-open {
+            margin-right: 400px;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -397,6 +597,197 @@
 
     <!-- Embedded source code (base64 encoded) -->
     <script id="source-data" type="application/json">{source_data}</script>
+
+    <!-- Scratchpad Panel -->
+    <button id="scratchpad-toggle" title="Toggle Scratchpad (Ctrl+`)">⚡</button>
+    <div id="scratchpad-panel">
+        <div class="scratchpad-header">
+            <span>Scratchpad</span>
+            <div class="scratchpad-header-actions">
+                <button id="scratchpad-reset" title="Reset to notebook state">Reset</button>
+                <button id="scratchpad-clear" title="Clear output">Clear</button>
+            </div>
+        </div>
+        <div id="scratchpad-output"></div>
+        <div class="scratchpad-input-area">
+            <textarea id="scratchpad-input" placeholder="Enter Python code..."></textarea>
+            <div class="scratchpad-buttons">
+                <button id="scratchpad-run">Run (Ctrl+Enter)</button>
+            </div>
+            <div class="scratchpad-status" id="scratchpad-status"></div>
+        </div>
+    </div>
+
+    <script>
+        // Scratchpad functionality
+        (function() {
+            const panel = document.getElementById('scratchpad-panel');
+            const toggle = document.getElementById('scratchpad-toggle');
+            const input = document.getElementById('scratchpad-input');
+            const output = document.getElementById('scratchpad-output');
+            const runBtn = document.getElementById('scratchpad-run');
+            const resetBtn = document.getElementById('scratchpad-reset');
+            const clearBtn = document.getElementById('scratchpad-clear');
+            const status = document.getElementById('scratchpad-status');
+
+            let sessionId = null;
+            let isExecuting = false;
+
+            function togglePanel() {
+                panel.classList.toggle('open');
+                toggle.classList.toggle('active');
+                document.body.classList.toggle('scratchpad-open');
+                if (panel.classList.contains('open')) {
+                    input.focus();
+                }
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function formatResult(result) {
+                if (!result) return '';
+
+                if (result.type === 'image/png' || result.type === 'image/jpeg') {
+                    if (result.data) {
+                        return '<img src="data:' + result.type + ';base64,' + result.data + '">';
+                    } else if (result.url) {
+                        return '<img src="' + result.url + '">';
+                    }
+                } else if (result.type === 'text/html') {
+                    return result.data;
+                } else if (result.type === 'text/plain') {
+                    return escapeHtml(result.data);
+                } else if (result.type === 'dataframe') {
+                    return 'DataFrame: ' + result.shape[0] + ' rows × ' + result.shape[1] + ' cols';
+                } else if (result.data) {
+                    return escapeHtml(String(result.data));
+                }
+                return '';
+            }
+
+            async function execute(code) {
+                if (!code.trim() || isExecuting) return;
+
+                isExecuting = true;
+                runBtn.disabled = true;
+                status.textContent = 'Executing...';
+
+                // Add input to output
+                const entry = document.createElement('div');
+                entry.className = 'scratchpad-entry';
+                entry.innerHTML = '<div class="scratchpad-input-line">' + escapeHtml(code) + '</div>';
+                output.appendChild(entry);
+
+                try {
+                    const endpoint = sessionId
+                        ? '/api/scratchpad/session/' + sessionId + '/execute'
+                        : '/api/scratchpad/execute';
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({code: code})
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        entry.innerHTML += '<div class="scratchpad-error">' + escapeHtml(data.error) + '</div>';
+                    } else {
+                        if (data.stdout) {
+                            entry.innerHTML += '<div class="scratchpad-stdout">' + escapeHtml(data.stdout) + '</div>';
+                        }
+                        if (data.result) {
+                            const formatted = formatResult(data.result);
+                            if (formatted) {
+                                entry.innerHTML += '<div class="scratchpad-result">' + formatted + '</div>';
+                            }
+                        }
+                    }
+
+                    status.textContent = 'Executed in ' + data.execution_time_ms.toFixed(1) + 'ms';
+                } catch (err) {
+                    entry.innerHTML += '<div class="scratchpad-error">Network error: ' + escapeHtml(err.message) + '</div>';
+                    status.textContent = 'Error';
+                }
+
+                // Scroll to bottom
+                output.scrollTop = output.scrollHeight;
+
+                // Clear input
+                input.value = '';
+
+                isExecuting = false;
+                runBtn.disabled = false;
+            }
+
+            async function createSession() {
+                try {
+                    const response = await fetch('/api/scratchpad/session', {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    sessionId = data.session_id;
+                    status.textContent = 'Session: ' + sessionId;
+                } catch (err) {
+                    status.textContent = 'Using ephemeral mode';
+                }
+            }
+
+            async function resetSession() {
+                if (sessionId) {
+                    try {
+                        await fetch('/api/scratchpad/session/' + sessionId + '/reset', {
+                            method: 'POST'
+                        });
+                        status.textContent = 'Session reset';
+                    } catch (err) {
+                        status.textContent = 'Reset failed';
+                    }
+                } else {
+                    status.textContent = 'Ready (ephemeral mode)';
+                }
+                clearOutput();
+            }
+
+            function clearOutput() {
+                output.innerHTML = '';
+            }
+
+            // Event listeners
+            toggle.addEventListener('click', togglePanel);
+
+            runBtn.addEventListener('click', function() {
+                execute(input.value);
+            });
+
+            resetBtn.addEventListener('click', resetSession);
+            clearBtn.addEventListener('click', clearOutput);
+
+            input.addEventListener('keydown', function(e) {
+                // Ctrl+Enter to run
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    execute(input.value);
+                }
+            });
+
+            // Global keyboard shortcut: Ctrl+` to toggle
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === '`') {
+                    e.preventDefault();
+                    togglePanel();
+                }
+            });
+
+            // Initialize
+            status.textContent = 'Ready (ephemeral mode)';
+        })();
+    </script>
 
     <script>
         function downloadSource() {
