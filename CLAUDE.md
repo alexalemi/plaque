@@ -407,3 +407,109 @@ results = response.json()['results']
 - **Dependency Tracking**: Understand cell relationships
 - **Real-time Updates**: Poll endpoints to monitor changes
 - **Image Support**: Access generated plots and visualizations
+
+## Scratchpad
+
+The scratchpad feature allows you to execute Python code against a **forked** copy of the notebook's execution environment. This is useful for exploring and inspecting state (checking shapes, types, values) without affecting the notebook itself.
+
+### User Interface
+
+When running `plaque serve`, click the ⚡ button in the bottom-right corner (or press **Ctrl+`**) to open the scratchpad panel.
+
+- **Ctrl+Enter**: Execute code
+- **Reset**: Re-fork from current notebook state
+- **Clear**: Clear output history
+
+The scratchpad operates in "ephemeral mode" by default - each execution runs in a fresh fork that's immediately discarded. This means:
+- You can read all notebook variables (`df`, `model`, etc.)
+- New variables you define don't persist between executions
+- The notebook's state is never modified
+
+### Scratchpad API
+
+AI agents can use the scratchpad via REST API endpoints:
+
+#### Ephemeral Execution (Stateless)
+```
+POST /api/scratchpad/execute
+Content-Type: application/json
+
+{"code": "df.shape"}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "counter": 1,
+  "stdout": "",
+  "stderr": "",
+  "result": {"type": "text/plain", "data": "(100, 5)"},
+  "error": null,
+  "execution_time_ms": 12.5
+}
+```
+
+#### Persistent Sessions
+
+For multi-step exploration where you need state to persist:
+
+```
+POST /api/scratchpad/session
+```
+Creates a session, returns `{"session_id": "sp_abc123", ...}`
+
+```
+POST /api/scratchpad/session/{id}/execute
+{"code": "subset = df[df['value'] > 0]"}
+```
+Execute in the session (variables persist)
+
+```
+POST /api/scratchpad/session/{id}/reset
+```
+Re-fork from current notebook state
+
+```
+GET /api/scratchpad/session/{id}/variables
+```
+List variables with type info and notebook origin
+
+```
+DELETE /api/scratchpad/session/{id}
+```
+Clean up the session
+
+### Example Agent Workflow
+
+```python
+import requests
+
+# Inspect a variable's shape
+result = requests.post('http://localhost:5000/api/scratchpad/execute',
+    json={"code": "df.shape"}).json()
+print(result['result']['data'])  # "(100, 5)"
+
+# Check variable type
+result = requests.post('http://localhost:5000/api/scratchpad/execute',
+    json={"code": "type(model).__name__"}).json()
+print(result['result']['data'])  # "RandomForestClassifier"
+
+# Multi-step exploration with a session
+session = requests.post('http://localhost:5000/api/scratchpad/session').json()
+sid = session['session_id']
+
+requests.post(f'http://localhost:5000/api/scratchpad/session/{sid}/execute',
+    json={"code": "filtered = df[df['value'] > 0]"})
+
+result = requests.post(f'http://localhost:5000/api/scratchpad/session/{sid}/execute',
+    json={"code": "filtered.shape"}).json()
+print(result['result']['data'])  # "(75, 5)"
+```
+
+### Benefits
+
+- **Safe exploration**: Inspect without modifying notebook state
+- **Quick inspection**: Check shapes, types, and values
+- **Experimentation**: Try transformations before adding to notebook
+- **AI agent support**: Structured JSON API for programmatic access
