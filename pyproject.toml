@@ -59,3 +59,7 @@ explicit = true
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*" = ["E402"]
+
+[tool.hatch.build.targets.sdist]
+# Hatch only honours the repo .gitignore, so keep untracked local/agent files out
+exclude = ["CLAUDE.local.md", "*.local.md", ".claude/", ".envrc", "dist/"]
