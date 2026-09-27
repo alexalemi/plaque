@@ -8,6 +8,17 @@ from .cell import Cell, CellType
 from .renderables import PNG, JPEG, SVG, HTML, JSON as JSONRenderable, Text, Markdown
 
 
+def to_ms(timestamp: Optional[float]) -> Optional[int]:
+    """Convert a time.time() timestamp to integer milliseconds for the API.
+
+    All timestamps exposed over HTTP use this unit, so agents can compare
+    them directly (e.g. `forked_from_update` against `last_update`).
+    """
+    if timestamp is None:
+        return None
+    return int(timestamp * 1000)
+
+
 def format_result(
     result: Any,
     image_dir: Optional[Path] = None,
@@ -139,22 +150,14 @@ def cell_to_json(
         else:
             status = "pending"
     else:
-        # Markdown cells
-        if cell.is_code:  # F-string markdown
-            if cell.error:
-                status = "error"
-            elif cell.counter > 0:
-                status = "success"
-            else:
-                status = "pending"
-        else:
-            status = "rendered"
+        status = "rendered"
 
     # Build the response
     response = {
         "index": index,
         "type": "code" if cell.type == CellType.CODE else "markdown",
         "lineno": cell.lineno,
+        "is_template": cell.is_template,
         "content": cell.content,
         "metadata": cell.metadata,
     }
@@ -170,7 +173,10 @@ def cell_to_json(
         }
 
         # Format the result
-        if cell.result is not None:
+        if cell.result is not None and cell.is_template:
+            # A template's result is the rendered markdown text
+            execution["result"] = {"type": "text/markdown", "data": str(cell.result)}
+        elif cell.result is not None:
             execution["result"] = format_result(
                 cell.result, image_dir, cell.counter, include_base64=False
             )
@@ -199,16 +205,18 @@ def cells_to_json(
 
 def notebook_state_to_json(cells: List[Cell], last_update: float) -> Dict[str, Any]:
     """Get the overall notebook state as JSON."""
-    code_cells = [c for c in cells if c.is_code]
-    executed_cells = [c for c in code_cells if c.counter > 0]
-    error_cells = [c for c in code_cells if c.error]
+    code_cells = [c for c in cells if c.type == CellType.CODE]
+    runnable_cells = [c for c in cells if c.is_code]
+    executed_cells = [c for c in runnable_cells if c.counter > 0]
+    error_cells = [c for c in runnable_cells if c.error]
 
     return {
         "total_cells": len(cells),
         "code_cells": len(code_cells),
         "markdown_cells": len(cells) - len(code_cells),
+        "template_cells": sum(c.is_template for c in cells),
         "executed_cells": len(executed_cells),
         "error_cells": len(error_cells),
-        "last_update": last_update,
+        "last_update": to_ms(last_update),
         "cells_with_errors": [i for i, c in enumerate(cells) if c.is_code and c.error],
     }

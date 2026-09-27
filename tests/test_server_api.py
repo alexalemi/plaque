@@ -188,6 +188,15 @@ class TestServerAPI:
         assert response["cells_with_errors"] == [3]
         assert "last_update" in response
 
+    def test_last_update_units_agree(self, server_url):
+        """Both endpoints report last_update as the same integer milliseconds."""
+        state = self.make_request(f"{server_url}/api/notebook/state")
+        reload = self.make_request(f"{server_url}/reload_check")
+
+        assert isinstance(state["last_update"], int)
+        assert state["last_update"] == reload["last_update"]
+        assert abs(state["last_update"] - time.time() * 1000) < 60_000
+
     def test_api_search(self, server_url):
         """Test the /api/search endpoint."""
         # Search for 'x'

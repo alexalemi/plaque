@@ -251,6 +251,7 @@ Returns a summary of all cells in the notebook:
       "type": "markdown",
       "lineno": 1,
       "is_code": false,
+      "is_template": false,
       "has_error": false,
       "execution_count": null
     },
@@ -259,12 +260,17 @@ Returns a summary of all cells in the notebook:
       "type": "code",
       "lineno": 5,
       "is_code": true,
+      "is_template": false,
       "has_error": false,
       "execution_count": 1
     }
   ]
 }
 ```
+
+`is_code` means the cell is executed. F-string markdown cells (templates) have
+`"type": "markdown"`, `"is_code": true` and `"is_template": true`; their
+execution result is the rendered text as `{"type": "text/markdown", ...}`.
 
 #### Get Cell Details
 ```
@@ -338,12 +344,16 @@ Returns overall notebook statistics:
   "total_cells": 5,
   "code_cells": 4,
   "markdown_cells": 1,
+  "template_cells": 0,
   "executed_cells": 3,
   "error_cells": 1,
   "last_update": 1640000000000,
   "cells_with_errors": [3]
 }
 ```
+`code_cells` and `markdown_cells` count by cell type (templates count as
+markdown). All API timestamps, including `last_update` here and in
+`/reload_check`, are integer milliseconds since the epoch.
 
 #### Search Cells
 ```
@@ -423,7 +433,9 @@ When running `plaque serve`, click the ⚡ button in the bottom-right corner (or
 The scratchpad operates in "ephemeral mode" by default - each execution runs in a fresh fork that's immediately discarded. This means:
 - You can read all notebook variables (`df`, `model`, etc.)
 - New variables you define don't persist between executions
-- The notebook's state is never modified
+- In-place changes (`lst.append(...)`, `df.drop(..., inplace=True)`) don't reach the notebook: before running, the scratchpad deep-copies the notebook objects your code refers to
+
+Objects larger than 256 MB (estimated for numpy/pandas/torch data), or that can't be copied (generators, open files, locks), stay shared with the notebook; the response's `warnings` list says which. Calling a function defined in the notebook that mutates its own globals also still affects the notebook.
 
 ### Scratchpad API
 
@@ -446,7 +458,8 @@ Response:
   "stderr": "",
   "result": {"type": "text/plain", "data": "(100, 5)"},
   "error": null,
-  "execution_time_ms": 12.5
+  "execution_time_ms": 12.5,
+  "warnings": []
 }
 ```
 
@@ -509,7 +522,7 @@ print(result['result']['data'])  # "(75, 5)"
 
 ### Benefits
 
-- **Safe exploration**: Inspect without modifying notebook state
+- **Safe exploration**: Inspect and mutate copies without modifying notebook state
 - **Quick inspection**: Check shapes, types, and values
 - **Experimentation**: Try transformations before adding to notebook
 - **AI agent support**: Structured JSON API for programmatic access

@@ -181,8 +181,60 @@ class TestNotebookState:
         assert state["markdown_cells"] == 1
         assert state["executed_cells"] == 3
         assert state["error_cells"] == 1
-        assert state["last_update"] == 1234567890.0
+        assert state["last_update"] == 1234567890000
         assert state["cells_with_errors"] == [3]
+
+    def test_template_cells_counted_as_markdown(self):
+        cells = [
+            Cell(type=CellType.CODE, content="x = 1", lineno=1, counter=1),
+            Cell(
+                type=CellType.MARKDOWN,
+                content='f"""x is {x}"""',
+                lineno=2,
+                metadata={"string_prefix": "f"},
+                counter=2,
+                result="x is 1",
+            ),
+        ]
+
+        state = notebook_state_to_json(cells, 0.0)
+
+        assert state["code_cells"] == 1
+        assert state["markdown_cells"] == 1
+        assert state["template_cells"] == 1
+        assert state["executed_cells"] == 2
+
+
+class TestTemplateCell:
+    """F-string markdown cells are markdown that executes."""
+
+    def test_template_cell_json(self):
+        cell = Cell(
+            type=CellType.MARKDOWN,
+            content='f"""x is {x}"""',
+            lineno=6,
+            metadata={"string_prefix": "f"},
+            counter=2,
+            result="x is 5",
+        )
+
+        result = cell_to_json(cell, 2)
+
+        assert result["type"] == "markdown"
+        assert result["is_template"] is True
+        assert result["execution"]["status"] == "success"
+        assert result["execution"]["result"] == {
+            "type": "text/markdown",
+            "data": "x is 5",
+        }
+
+    def test_plain_markdown_is_not_template(self):
+        cell = Cell(type=CellType.MARKDOWN, content="# Hi", lineno=1)
+
+        result = cell_to_json(cell, 0)
+
+        assert result["is_template"] is False
+        assert "execution" not in result
 
 
 class TestCellsToJson:

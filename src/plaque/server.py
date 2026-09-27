@@ -16,7 +16,7 @@ import click
 
 
 from .watcher import FileWatcher
-from .api_formatter import cell_to_json, notebook_state_to_json, format_result
+from .api_formatter import cell_to_json, notebook_state_to_json, format_result, to_ms
 from .scratchpad import ScratchpadManager
 
 logger = logging.getLogger(__name__)
@@ -230,11 +230,7 @@ class NotebookHTTPServer:
                     self.send_header("Cache-Control", "no-cache")
                     self.end_headers()
 
-                    response = {
-                        "last_update": int(
-                            server_instance.last_update * 1000
-                        )  # Convert to milliseconds
-                    }
+                    response = {"last_update": to_ms(server_instance.last_update)}
                     self.wfile.write(json.dumps(response).encode("utf-8"))
                 elif self.path.startswith("/images/"):
                     # Serve images from the images directory
@@ -293,6 +289,7 @@ class NotebookHTTPServer:
                                 "type": "code" if cell.type.value == 1 else "markdown",
                                 "lineno": cell.lineno,
                                 "is_code": cell.is_code,
+                                "is_template": cell.is_template,
                                 "has_error": bool(cell.error),
                                 "execution_count": cell.counter
                                 if cell.is_code
@@ -497,8 +494,8 @@ class NotebookHTTPServer:
                         session = server_instance.scratchpad_manager.create_session()
                         self.send_json_response({
                             "session_id": session.session_id,
-                            "created_at": session.created_at,
-                            "forked_from_update": session.forked_from_update
+                            "created_at": to_ms(session.created_at),
+                            "forked_from_update": to_ms(session.forked_from_update)
                         })
 
                     # POST /api/scratchpad/session/{id}/execute - Execute in session
@@ -544,7 +541,7 @@ class NotebookHTTPServer:
                         self.send_json_response({
                             "session_id": session_id,
                             "reset": True,
-                            "forked_from_update": session.forked_from_update
+                            "forked_from_update": to_ms(session.forked_from_update)
                         })
 
                     else:

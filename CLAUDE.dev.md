@@ -165,6 +165,7 @@ Returns a summary of all cells in the notebook:
       "type": "markdown",
       "lineno": 1,
       "is_code": false,
+      "is_template": false,
       "has_error": false,
       "execution_count": null
     },
@@ -173,6 +174,7 @@ Returns a summary of all cells in the notebook:
       "type": "code", 
       "lineno": 5,
       "is_code": true,
+      "is_template": false,
       "has_error": false,
       "execution_count": 1
     }

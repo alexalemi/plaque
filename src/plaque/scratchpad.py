@@ -2,9 +2,17 @@
 
 Provides a forked execution environment that allows users and AI agents
 to run Python code against the notebook's state without affecting it.
+
+Forking is lazy: the fork starts with a shallow copy of the namespace, and
+just before each execution the notebook objects the code refers to are
+deep-copied into the fork (see ``isolate_referenced``). Objects too large or
+impossible to copy stay shared, and the result carries a warning.
 """
 
+import copy
+import re
 import time
+import types
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -14,8 +22,79 @@ from IPython.core.interactiveshell import InteractiveShell
 from .environment import Environment, SilentDisplayHook
 from .iowrapper import NotebookStdout
 from .display import to_renderable
+from .api_formatter import to_ms
 import sys
 from contextlib import redirect_stdout, redirect_stderr
+
+
+# Objects above this estimated size are shared rather than copied.
+DEFAULT_MAX_COPY_BYTES = 256 * 1024 * 1024
+
+# Types whose values can't be mutated in place (or that we deliberately share).
+_SHARED_TYPES = (
+    int, float, complex, bool, str, bytes, frozenset, range, type(None),
+    types.ModuleType, types.FunctionType, types.BuiltinFunctionType, type,
+)
+_SKIP_NAMES = {"In", "Out", "get_ipython", "exit", "quit"}
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _estimated_nbytes(value: Any) -> Optional[int]:
+    """Cheap size estimate for array-like objects, or None if unknown."""
+    nbytes = getattr(value, "nbytes", None)  # numpy, torch, jax
+    if isinstance(nbytes, int):
+        return nbytes
+    memory_usage = getattr(value, "memory_usage", None)  # pandas
+    if callable(memory_usage):
+        try:
+            usage = memory_usage(deep=False)
+            return int(usage.sum()) if hasattr(usage, "sum") else int(usage)
+        except Exception:
+            return None
+    return None
+
+
+def isolate_referenced(
+    code: str,
+    namespace: dict,
+    source_namespace: dict,
+    max_copy_bytes: int = DEFAULT_MAX_COPY_BYTES,
+) -> List[str]:
+    """Deep-copy notebook objects that ``code`` may touch into ``namespace``.
+
+    A name is copied only while it still refers to the very same object as in
+    ``source_namespace``; once copied (or rebound by the user) it is left alone,
+    so persistent sessions pay the cost at most once per name. Any identifier
+    in the code counts as a reference (over-approximating is only extra
+    copying), which also covers magics like ``%timeit f(x)`` and ``!echo $x``.
+
+    Returns warnings for objects that had to stay shared with the notebook.
+    """
+    warnings = []
+    for name in sorted(set(_IDENTIFIER.findall(code))):
+        if name.startswith("_") or name in _SKIP_NAMES:
+            continue
+        if name not in namespace or name not in source_namespace:
+            continue
+        value = namespace[name]
+        if value is not source_namespace[name] or isinstance(value, _SHARED_TYPES):
+            continue
+
+        nbytes = _estimated_nbytes(value)
+        if nbytes is not None and nbytes > max_copy_bytes:
+            warnings.append(
+                f"'{name}' ({nbytes / 2**20:.0f} MB) is shared with the notebook, "
+                "not copied: in-place changes to it will affect the notebook."
+            )
+            continue
+        try:
+            namespace[name] = copy.deepcopy(value)
+        except Exception as e:
+            warnings.append(
+                f"'{name}' could not be copied ({type(e).__name__}) and is shared "
+                "with the notebook: in-place changes to it will affect the notebook."
+            )
+    return warnings
 
 
 @dataclass
@@ -29,6 +108,7 @@ class ExecutionResult:
     result: Any  # The raw result object (will be formatted by api_formatter)
     error: Optional[str]
     execution_time_ms: float
+    warnings: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to a dictionary (result formatting done separately)."""
@@ -39,6 +119,7 @@ class ExecutionResult:
             "stderr": self.stderr,
             "error": self.error,
             "execution_time_ms": self.execution_time_ms,
+            "warnings": self.warnings,
             # Note: 'result' is formatted separately by the API layer
         }
 
@@ -54,6 +135,9 @@ class ScratchpadSession:
     execution_count: int = 0
     last_execution: Optional[float] = None
     history: List[tuple] = field(default_factory=list)  # (code, result) pairs
+    # The notebook namespace this session was forked from (for lazy copying)
+    source_namespace: Optional[dict] = None
+    max_copy_bytes: int = DEFAULT_MAX_COPY_BYTES
 
     def execute(self, code: str) -> ExecutionResult:
         """Execute code in this session's forked environment."""
@@ -65,6 +149,15 @@ class ScratchpadSession:
 
         # Reset display hook
         self.environment.display_hook.reset_capture()
+
+        warnings = []
+        if self.source_namespace is not None:
+            warnings = isolate_referenced(
+                code,
+                self.environment.shell.user_ns,
+                self.source_namespace,
+                self.max_copy_bytes,
+            )
 
         result = None
         error = None
@@ -118,6 +211,7 @@ class ScratchpadSession:
             result=result,
             error=error,
             execution_time_ms=execution_time_ms,
+            warnings=warnings,
         )
 
         # Store in history
@@ -159,6 +253,7 @@ class ScratchpadSession:
         self.environment.shell.user_ns["__name__"] = "__main__"
 
         # Reset state
+        self.source_namespace = main_environment.shell.user_ns
         self.forked_from_update = last_update
         self.execution_count = 0
         self.environment.counter = 0
@@ -172,8 +267,9 @@ def create_forked_environment(main_environment: Environment) -> Environment:
     - Has its own IPython shell instance (isolated execution)
     - Starts with a shallow copy of the main namespace (can read variables)
     - New assignments stay in the fork (don't affect main)
-    - Shared mutable objects can be read (mutations would propagate, but that's
-      acceptable for the inspection use case)
+
+    The copy is shallow; sessions deep-copy objects lazily on first reference
+    (see ``isolate_referenced``) so in-place mutation doesn't reach the notebook.
     """
     forked = Environment()
 
@@ -192,14 +288,22 @@ def create_forked_environment(main_environment: Environment) -> Environment:
 class ScratchpadManager:
     """Manages scratchpad sessions for a notebook."""
 
-    def __init__(self, main_environment: Environment, last_update_fn=None):
+    def __init__(
+        self,
+        main_environment: Environment,
+        last_update_fn=None,
+        max_copy_bytes: int = DEFAULT_MAX_COPY_BYTES,
+    ):
         """Initialize the scratchpad manager.
 
         Args:
             main_environment: The main notebook's execution environment
             last_update_fn: Optional callable that returns the last update timestamp
+            max_copy_bytes: Objects estimated larger than this are shared with
+                the notebook instead of copied
         """
         self.main_environment = main_environment
+        self.max_copy_bytes = max_copy_bytes
         self.last_update_fn = last_update_fn or (lambda: time.time())
         self.sessions: Dict[str, ScratchpadSession] = {}
         self.max_sessions = 10  # Limit concurrent sessions
@@ -228,6 +332,8 @@ class ScratchpadManager:
             environment=forked_env,
             created_at=time.time(),
             forked_from_update=last_update,
+            source_namespace=self.main_environment.shell.user_ns,
+            max_copy_bytes=self.max_copy_bytes,
         )
 
         self.sessions[session_id] = session
@@ -247,6 +353,8 @@ class ScratchpadManager:
             environment=forked_env,
             created_at=time.time(),
             forked_from_update=self.last_update_fn(),
+            source_namespace=self.main_environment.shell.user_ns,
+            max_copy_bytes=self.max_copy_bytes,
         )
 
         return temp_session.execute(code)
@@ -279,9 +387,9 @@ class ScratchpadManager:
         return [
             {
                 "session_id": session.session_id,
-                "created_at": session.created_at,
+                "created_at": to_ms(session.created_at),
                 "execution_count": session.execution_count,
-                "last_execution": session.last_execution,
+                "last_execution": to_ms(session.last_execution),
             }
             for session in self.sessions.values()
         ]
