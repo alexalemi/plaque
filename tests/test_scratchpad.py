@@ -491,3 +491,93 @@ class TestIntegrationScenarios:
         # Main namespace should be unchanged
         assert "filtered" not in main_env.shell.user_ns
         assert "total" not in main_env.shell.user_ns
+
+
+class TestMutationIsolation:
+    """In-place mutation in the scratchpad must not reach the notebook."""
+
+    def test_ephemeral_list_append(self):
+        main_env = Environment()
+        main_env.shell.user_ns["lst"] = [1, 2]
+        manager = ScratchpadManager(main_env)
+
+        result = manager.execute_ephemeral("lst.append(3); lst")
+
+        assert result.success
+        assert result.warnings == []
+        assert main_env.shell.user_ns["lst"] == [1, 2]
+
+    def test_augmented_assignment(self):
+        main_env = Environment()
+        main_env.shell.user_ns["lst"] = [1]
+        manager = ScratchpadManager(main_env)
+
+        manager.execute_ephemeral("lst += [2]")
+
+        assert main_env.shell.user_ns["lst"] == [1]
+
+    def test_session_mutations_persist_in_session_only(self):
+        main_env = Environment()
+        main_env.shell.user_ns["d"] = {"a": 1}
+        manager = ScratchpadManager(main_env)
+        session = manager.create_session()
+
+        session.execute("d['b'] = 2")
+        result = session.execute("sorted(d)")
+
+        assert result.result.content == "['a', 'b']"
+        assert main_env.shell.user_ns["d"] == {"a": 1}
+
+    def test_dataframe_inplace(self):
+        pd = pytest.importorskip("pandas")
+        main_env = Environment()
+        main_env.shell.user_ns["df"] = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        manager = ScratchpadManager(main_env)
+
+        manager.execute_ephemeral("df.drop(columns=['b'], inplace=True)")
+
+        assert list(main_env.shell.user_ns["df"].columns) == ["a", "b"]
+
+    def test_objects_referenced_in_magics_are_copied(self):
+        main_env = Environment()
+        main_env.shell.user_ns["lst"] = []
+        manager = ScratchpadManager(main_env)
+
+        manager.execute_ephemeral("%time lst.append(1)")
+
+        assert main_env.shell.user_ns["lst"] == []
+
+    def test_large_objects_are_shared_with_warning(self):
+        np = pytest.importorskip("numpy")
+        main_env = Environment()
+        arr = np.zeros(1000)
+        main_env.shell.user_ns["arr"] = arr
+        manager = ScratchpadManager(main_env, max_copy_bytes=100)
+
+        result = manager.execute_ephemeral("arr.shape")
+
+        assert result.success
+        assert len(result.warnings) == 1
+        assert "'arr'" in result.warnings[0]
+        assert result.to_dict()["warnings"] == result.warnings
+
+    def test_uncopyable_objects_are_shared_with_warning(self):
+        main_env = Environment()
+        main_env.shell.user_ns["gen"] = (i for i in range(3))
+        manager = ScratchpadManager(main_env)
+
+        result = manager.execute_ephemeral("next(gen)")
+
+        assert result.success
+        assert "'gen' could not be copied" in result.warnings[0]
+
+    def test_unreferenced_objects_are_not_copied(self):
+        main_env = Environment()
+        big = [0] * 10
+        main_env.shell.user_ns["big"] = big
+        manager = ScratchpadManager(main_env)
+        session = manager.create_session()
+
+        session.execute("x = 1")
+
+        assert session.environment.shell.user_ns["big"] is big

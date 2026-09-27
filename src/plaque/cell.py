@@ -29,16 +29,16 @@ class Cell:
     content_hash: str = ""
 
     @property
-    def is_code(self) -> bool:
-        # Regular code cells
-        if self.type == CellType.CODE:
-            return True
-        # F-string markdown cells should be executed like code
-        if self.type == CellType.MARKDOWN and self.metadata.get(
+    def is_template(self) -> bool:
+        """F-string markdown cells: markdown whose text is computed by executing."""
+        return self.type == CellType.MARKDOWN and self.metadata.get(
             "string_prefix", ""
-        ).startswith("f"):
-            return True
-        return False
+        ).startswith("f")
+
+    @property
+    def is_code(self) -> bool:
+        """Whether the cell is executed (code cells and f-string templates)."""
+        return self.type == CellType.CODE or self.is_template
 
     @property
     def is_markdown(self) -> bool:

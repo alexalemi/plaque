@@ -502,3 +502,77 @@ f"""Formatted with "quotes" and {variable}"""
         # Not a string
         info = parser._get_string_info("x = 1")
         assert info is None
+
+
+class TestNonPythonLines:
+    """Lines that aren't valid Python must not collapse string-style cells."""
+
+    @staticmethod
+    def _summary(source):
+        return [(c.type, c.lineno, c.content) for c in parse_ast(io.StringIO(source))]
+
+    def test_line_magic_keeps_markdown_cells(self):
+        source = (
+            '"""\n# Test\n"""\n'
+            "x = 5\n"
+            "%timeit sum(range(100))\n"
+            'f"""x is {x}"""\n'
+        )
+        cells = list(parse_ast(io.StringIO(source)))
+        assert self._summary(source) == [
+            (CellType.MARKDOWN, 1, "# Test"),
+            (CellType.CODE, 4, "x = 5\n%timeit sum(range(100))"),
+            (CellType.MARKDOWN, 6, 'f"""x is {x}"""'),
+        ]
+        assert cells[2].metadata == {"string_prefix": "f"}
+
+    def test_cell_magic_with_non_python_body(self):
+        source = '"""\n# A\n"""\n%%bash\necho hi && ls\n"""\n# B\n"""\ny = 1\n'
+        assert self._summary(source) == [
+            (CellType.MARKDOWN, 1, "# A"),
+            (CellType.CODE, 4, "%%bash\necho hi && ls"),
+            (CellType.MARKDOWN, 6, "# B"),
+            (CellType.CODE, 9, "y = 1"),
+        ]
+
+    def test_shell_commands_and_help_syntax(self):
+        source = (
+            '"""\n# A\n"""\n'
+            "files = !ls\n"
+            "len?\n"
+            "for i in range(2):\n"
+            "    !echo $i\n"
+            '"""\n# B\n"""\n'
+        )
+        assert self._summary(source) == [
+            (CellType.MARKDOWN, 1, "# A"),
+            (
+                CellType.CODE,
+                4,
+                "files = !ls\nlen?\nfor i in range(2):\n    !echo $i",
+            ),
+            (CellType.MARKDOWN, 8, "# B"),
+        ]
+
+    def test_syntax_error_is_confined_to_its_cell(self):
+        source = '"""\n# A\n"""\nx = (1 +\n"""\n# B\n"""\ny = 2\n'
+        assert self._summary(source) == [
+            (CellType.MARKDOWN, 1, "# A"),
+            (CellType.CODE, 4, "x = (1 +"),
+            (CellType.MARKDOWN, 5, "# B"),
+            (CellType.CODE, 8, "y = 2"),
+        ]
+
+    def test_syntax_error_reported_on_offending_cell(self):
+        from src.plaque.processor import Processor
+
+        source = (
+            'x = 5\n"""\n# A\n"""\nbad = (1 +\n"""\n# B\n"""\ny = x + 1\ny\n'
+        )
+        cells = Processor().process_cells(list(parse_ast(io.StringIO(source))))
+        code = [c for c in cells if c.type == CellType.CODE]
+        assert len(code) == 3
+        assert code[0].error is None
+        assert "SyntaxError" in code[1].error
+        assert code[2].error is None
+        assert code[2].result == 6

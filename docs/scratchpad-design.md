@@ -37,7 +37,16 @@ def fork_environment(main_environment):
 - ✅ Fast to create (no deep copy needed)
 - ✅ Reads from main namespace work perfectly
 - ✅ New variable assignments stay in scratchpad
-- ⚠️ Mutations to shared mutable objects affect both (acceptable for inspection use case)
+- ⚠️ Mutations to shared mutable objects would affect both
+
+**Update (implemented):** to close that gap, execution is preceded by a lazy
+isolation step (`isolate_referenced` in `scratchpad.py`). Every identifier in
+the snippet that still refers to the *same object* as in the notebook is
+deep-copied into the fork, so only the handful of names a snippet touches are
+ever copied, and each at most once per session. Objects estimated above
+`max_copy_bytes` (256 MB default) or that fail `deepcopy` stay shared and are
+reported in the result's `warnings`. Remaining leak: functions defined in the
+notebook keep the notebook namespace as their `__globals__`.
 
 For most inspection use cases (`df.shape`, `type(x)`, `model.summary()`), this is ideal.
 
@@ -503,7 +512,7 @@ def test_scratchpad_reads_main():
 
 2. **Multi-User**: If server is exposed on network, should each client get isolated sessions? (Yes, via session IDs)
 
-3. **Mutation Warning**: Should we detect and warn about mutations to shared mutable objects? (Nice to have, but complex)
+3. **Mutation Warning**: ~~Should we detect and warn about mutations to shared mutable objects?~~ Resolved by lazy deep-copying of referenced objects; objects that must stay shared produce a warning instead.
 
 4. **Sync with Notebook**: When notebook re-executes, should scratchpad sessions auto-refresh? (Probably yes, or at least offer refresh)
 

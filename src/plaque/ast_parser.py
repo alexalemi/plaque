@@ -119,6 +119,41 @@ class ASTParser:
 
         return title, cell_type, metadata
 
+    @staticmethod
+    def _parse_tolerant(source: str) -> ast.Module | None:
+        """Parse source into an AST, tolerating lines that aren't valid Python.
+
+        IPython syntax (``%magic``, ``%%cell_magic``, ``!shell``, ``x = !cmd``,
+        ``obj?``) and genuine syntax errors would otherwise make ``ast.parse``
+        fail for the whole file. Since the AST is only used to locate cell
+        boundaries by line number, we repeatedly blank out the offending line
+        (keeping line numbers intact) and retry. Cell contents are still taken
+        from the original source, so errors surface when the cell executes.
+        """
+        lines = source.split("\n")
+        # Each line gets two chances: first replaced by `pass` (keeps indented
+        # blocks valid), then blanked entirely (fixes unexpected indents).
+        attempts: Dict[int, int] = {}
+        for _ in range(2 * len(lines) + 1):
+            try:
+                return ast.parse("\n".join(lines))
+            except SyntaxError as e:
+                lineno = e.lineno
+                if lineno is None or not 1 <= lineno <= len(lines):
+                    return None
+                idx = lineno - 1
+                tries = attempts.get(idx, 0)
+                if tries == 0:
+                    line = lines[idx]
+                    indent = line[: len(line) - len(line.lstrip())]
+                    lines[idx] = indent + "pass"
+                elif tries == 1:
+                    lines[idx] = ""
+                else:
+                    return None
+                attempts[idx] = tries + 1
+        return None
+
     def _find_cell_boundaries(self, source: str) -> List[CellBoundary]:
         """Find all cell boundaries in the source code."""
         boundaries = []
@@ -145,8 +180,8 @@ class ASTParser:
                     continue
 
         # Find top-level triple-quoted strings using AST
-        try:
-            tree = ast.parse(source)
+        tree = self._parse_tolerant(source)
+        if tree is not None:
             # Only look at module-level statements, not nested nodes
             for node in tree.body:
                 if isinstance(node, ast.Expr) and hasattr(node, "lineno"):
@@ -180,9 +215,6 @@ class ASTParser:
                                 metadata=metadata,
                             )
                         )
-        except SyntaxError:
-            # If we can't parse the AST, just use the marker boundaries
-            pass
 
         # Sort boundaries by line number
         boundaries.sort(key=lambda x: x.line_no)
